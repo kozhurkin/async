@@ -1,191 +1,195 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
-	"runtime"
-	"sync/atomic"
+	"os"
+	"os/signal"
+	"sync"
 	"time"
 )
 
 func main() {
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	ctx, cancel = context.WithCancel(ctx)
+
+	// handle SIGINT (control+c)
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		select {
+		case <-c:
+			fmt.Println("\nmain: interrupt received. cancelling context.")
+		}
+		cancel()
+	}()
+
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	res, err := Map(data, func(k int) (int, error) {
-		rnd := rand.Intn(1000)
-		if rnd > 900 {
-			return rnd, errors.New("unknown error")
+	for i := 1; i <= 1000; i++ {
+		res, err := Map2(ctx, data, func(k int) (int, error) {
+			rnd := rand.Intn(1000)
+			if rand.Intn(len(data)) == 0 {
+				return k, errors.New("unknown error")
+			}
+			<-time.After(time.Duration(rnd) * time.Millisecond)
+			Printf("DONE %v", k)
+			return k, nil
+		}, 2)
+		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
+		select {
+		case <-ctx.Done():
+			fmt.Println("BREAAAAAK")
+			return
+		default:
+			continue
 		}
-		<-time.After(time.Duration(rnd) * time.Millisecond)
-		Printf("DONE %v", k)
-		return rnd, nil
-	}, 3)
+	}
 	<-time.After(time.Second)
-	fmt.Println("RESULT:", res, err)
 }
 
 func Printf(template string, rest ...interface{}) {
-	args := append([]interface{}{time.Now()}, rest...)
-	fmt.Printf("[%v]    "+template+"\n", args...)
+	args := append([]interface{}{time.Now().String()[0:25]}, rest...)
+	fmt.Printf("[ %v ]    "+template+"\n", args...)
 }
 
-func Map[K comparable, V any](list []K, f func(k K) (V, error), concurrency int) (map[K]V, error) {
+func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, error), concurrency int) (map[K]V, error) {
 	if concurrency == 0 {
 		concurrency = len(list)
 	}
-	fmt.Println("CONCURRENCY:", concurrency)
+	Printf("CONCURRENCY: %v", concurrency)
 	errchan := make(chan error)
 	traffic := make(chan struct{}, concurrency-1)
-	outchan := make(chan struct {
+	output := make(chan struct {
 		Key   K
 		Value V
 		error
 	})
 
-	var stop int32
+	ctx, cancel := context.WithCancel(ctx)
+	wg := sync.WaitGroup{}
 	res := make(map[K]V, 0)
 
+	wg.Add(len(list))
 	go func() {
-		defer close(errchan)
-		defer close(outchan)
-		for range list {
-			m := <-outchan
-			Printf("m := <-outchan: %v %v %v", m.Key, m.Value, m.error)
+		wg.Wait()
+		fmt.Println("---------wg.Wait()")
+		close(output)
+	}()
+
+	go func() {
+		for m := range output {
+			Printf("m := <-output: %v %v %v", m.Key, m.Value, m.error)
 			if m.error != nil {
 				errchan <- m.error
+				cancel()
+				for range traffic {
+					Printf("for range traffic")
+				}
 				break
 			}
 			res[m.Key] = m.Value
-			fmt.Println(res, len(traffic))
+			Printf("%v %v", res, len(traffic))
 			<-traffic
 		}
+		Printf("---------- END OUTPUT LOOP")
+		close(errchan)
 	}()
 
 	go func() {
 		for _, key := range list {
+			select {
+			case <-ctx.Done():
+				fmt.Println("SKIP", key)
+				wg.Done()
+				continue
+			default:
+			}
 			go func(key K) {
 				Printf("go func(key K) %v", key)
 				value, err := f(key)
 				Printf("VALUE %v %v", value, err)
-				if atomic.LoadInt32(&stop) != 0 {
-					return
-				}
-				outchan <- struct {
+				output <- struct {
 					Key   K
 					Value V
 					error
 				}{key, value, err}
+				wg.Done()
 			}(key)
 			Printf("traffic <- struct{}{} ... %v", len(traffic))
 			traffic <- struct{}{}
 			Printf("traffic <- struct{}{}")
+
 		}
-		fmt.Println("____________Dasdasd", len(traffic))
+		Printf("---------- END INPUT LOOP %v", len(traffic))
 		close(traffic)
 	}()
 
-	err := <-errchan
-
-	atomic.AddInt32(&stop, 1)
-
-	return res, err
-}
-
-func Map_[K comparable, V any](list []K, f func(k K) (V, error), concurrency int) (map[K]V, error) {
-	if concurrency == 0 {
-		concurrency = len(list)
-	}
-	fmt.Println("CONCURRENCY:", concurrency)
-	traffic := make(chan K, concurrency-1)
-	ch := make(chan struct {
-		Key   K
-		Value V
-		error
-	}, concurrency)
-	defer close(ch)
-
-	delta, total := time.Now(), time.Now()
-
-	var stop int32
-
-	go func() {
-		for _, key := range list {
-			Printf("... traffic <- %v", key)
-			traffic <- key
-			Printf("    traffic <- %v", key)
-			if atomic.LoadInt32(&stop) != 0 {
-				break
-			}
-			go func(key K) {
-				Printf("go func(key K) %v", key)
-				value, err := f(key)
-				Printf("... ch <- %v [Value=%v, Error=%v] (%v)", key, value, err, time.Now().Sub(delta))
-				if atomic.LoadInt32(&stop) != 0 {
-					return
-				}
-				Printf("11111111111 %v %v", key, atomic.LoadInt32(&stop))
-				ch <- struct {
-					Key   K
-					Value V
-					error
-				}{key, value, err}
-				Printf("    ch <- %v [Value=%v, Error=%v] (%v)", key, value, err, time.Now().Sub(delta))
-			}(key)
+	select {
+	case err, ok := <-errchan:
+		Printf("%v %v", err, ok)
+		if err != nil {
+			return nil, err
 		}
-		close(traffic)
-		Printf("CLOOSE(CH)")
-	}()
-
-	res := make(map[K]V, 0)
-	for range list {
-		Printf(" <- traffic ...")
-		lock := <-traffic
-		Printf(" <- traffic %v", lock)
-		Printf(" <- ch ...")
-		m := <-ch
-		Printf(" <- ch %v [Value=%v, Error=%v]", m.Key, m.Value, m.error)
-		if m.error != nil {
-			Printf("ERROR: %v [Key=%v, Value=%v] (%s)", m.error, m.Key, m.Value, time.Now().Sub(total))
-			Printf("len(traffic)=%v, NumGoroutine=%v", len(traffic), runtime.NumGoroutine())
-			atomic.AddInt32(&stop, 1)
-			Printf("STOP")
-			for range traffic {
-				Printf("%v %v", len(traffic), cap(traffic))
-			}
-			return nil, m.error
-		}
-		res[m.Key] = m.Value
+		return res, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-
-	fmt.Println("RETURN:", res, time.Now().Sub(total))
-	return res, nil
 }
 
 // array of channels
-func Map2[K comparable, V any](list []K, f func(k K) (V, error)) ([]V, error) {
-	promises := make([]chan V, len(list))
+func Map2[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, error), concurrency int) ([]V, error) {
+	if concurrency == 0 {
+		concurrency = len(list)
+	}
+	Printf("CONCURRENCY: %v", concurrency)
+
+	promises := make([]chan struct {
+		Value V
+		error
+	}, len(list))
+	errchan := make(chan error)
+	defer close(errchan)
+	traffic := make(chan struct{}, concurrency)
 	delta, total := time.Now(), time.Now()
 
 	for i, key := range list {
-		promises[i] = make(chan V, 1)
-		go func(i int, key K) {
-			value, _ := f(key)
-			promises[i] <- value
-			Printf("promises[%v] <- %v (%vms)", i, value, time.Now().Sub(delta))
+		traffic <- struct{}{}
+		i := i
+		key := key
+		promises[i] = make(chan struct {
+			Value V
+			error
+		}, 1)
+		go func() {
+			value, err := f(key)
+			promises[i] <- struct {
+				Value V
+				error
+			}{value, err}
 			close(promises[i])
-		}(i, key)
+			Printf("promises[%v] <- %v %v (%vms)", i, key, value, time.Now().Sub(delta))
+			<-traffic
+		}()
 	}
 
 	res := make([]V, len(list))
 
 	for i := range list {
-		v := <-promises[i]
-		Printf("<- promises[%v] %v", i, v)
-		res[i] = v
+		m := <-promises[i]
+		if m.error != nil {
+			return nil, m.error
+		}
+		res[i] = m.Value
+		//<-traffic
+		Printf("<- promises[%v] %v", i, res[i])
 	}
 
-	fmt.Println(res, time.Now().Sub(total))
+	fmt.Println("", res, time.Now().Sub(total))
 
 	return res, nil
 }

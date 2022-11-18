@@ -30,20 +30,20 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	for i := 1; i <= 1000; i++ {
-		res, err := Map2(ctx, data, func(k int) (int, error) {
+	for i := 1; i <= 1; i++ {
+		res, err := MapWg(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			<-time.After(time.Duration(rnd) * time.Millisecond)
-			Printf("DONE %v", k)
 			return k, nil
-		}, 2)
+		}, 0)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
 			fmt.Println("BREAAAAAK")
+			<-time.After(time.Second)
 			return
 		default:
 			continue
@@ -90,6 +90,11 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 				for range traffic {
 					Printf("for range traffic")
 				}
+				go func() {
+					for range output {
+						Printf("for range output")
+					}
+				}()
 				break
 			}
 			res[m.Key] = m.Value
@@ -112,7 +117,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 			go func(key K) {
 				Printf("go func(key K) %v", key)
 				value, err := f(key)
-				Printf("VALUE %v %v", value, err)
+				Printf("JOB DONE %v %v", value, err)
 				output <- struct {
 					Key   K
 					Value V

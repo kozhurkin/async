@@ -14,8 +14,8 @@ func main() {
 
 	t := time.Now()
 	data := []int{1, 2, 3, 4, 5}
-	for i := 1; i <= 10000; i++ {
-		res, err := async3(data)
+	for i := 1; i <= 1; i++ {
+		res, err := async(data)
 		fmt.Println(res, err, time.Now().Sub(t))
 	}
 	<-time.After(time.Second)
@@ -31,11 +31,11 @@ func async2(data []int) ([]int, error) {
 		value := value
 		g.Go(func() (err error) {
 			fmt.Println("g.Go()", i, value)
-			if value == rand.Intn(10) {
+			if rand.Intn(10) == 0 {
 				err = errors.New("bad error")
 				fmt.Println("THROW", err)
 			}
-			<-time.After(time.Duration(value) * time.Millisecond)
+			<-time.After(time.Duration(1000) * time.Millisecond)
 			ch <- [2]int{i, value}
 			return err
 		})
@@ -64,13 +64,13 @@ func async(data []int) ([]int, error) {
 		error
 	}, len(data))
 	g, ctx := errgroup.WithContext(context.Background())
-	g.SetLimit(2)
+	g.SetLimit(0)
 	for i, value := range data {
 		i := i
 		value := value
 		g.Go(func() (err error) {
 			fmt.Println("g.Go()", i, value)
-			<-time.After(time.Duration(value*10) * time.Millisecond)
+			<-time.After(time.Duration(value*1000) * time.Millisecond)
 			if value == rand.Intn(10) {
 				err = errors.New("bad error")
 				fmt.Println("THROW", err)

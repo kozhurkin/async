@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -31,14 +32,14 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	for i := 1; i <= 1; i++ {
-		res, err := MapWg(ctx, data, func(k int) (int, error) {
+		res, err := MapArr(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 3)
+		}, 2)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -141,51 +142,94 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 }
 
 // array of channels
-func Map2[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, error), concurrency int) ([]V, error) {
+func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(list)
 	}
 	Printf("CONCURRENCY: %v", concurrency)
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	promises := make([]chan struct {
+		Index int
 		Value V
 		error
 	}, len(list))
-	errchan := make(chan error)
-	defer close(errchan)
+
 	traffic := make(chan struct{}, concurrency)
+	defer close(traffic)
+
+	pipe := make(chan struct {
+		Index int
+		Value V
+		error
+	}, len(list))
+
 	delta, total := time.Now(), time.Now()
 
+	var stop int32
+
 	for i, key := range list {
+		if atomic.LoadInt32(&stop) == 1 {
+			promises = promises[0:i]
+			break
+		}
 		traffic <- struct{}{}
-		i := i
-		key := key
-		promises[i] = make(chan struct {
+		p := make(chan struct {
+			Index int
 			Value V
 			error
 		}, 1)
+		promises[i] = p
+		i := i
+		key := key
 		go func() {
+			Printf("go func() %v %v", i, key)
 			value, err := f(key)
-			promises[i] <- struct {
+			Printf("JOB DONE: %v %v %v", key, value, err)
+			if err != nil {
+				atomic.CompareAndSwapInt32(&stop, 0, 1)
+			}
+			p <- struct {
+				Index int
 				Value V
 				error
-			}{value, err}
-			close(promises[i])
+			}{i, value, err}
+			close(p)
 			Printf("promises[%v] <- %v %v (%vms)", i, key, value, time.Now().Sub(delta))
 			<-traffic
 		}()
 	}
+	Printf("-------looped len(promises) = %v", len(promises))
+
+	stop = int32(len(promises))
+	for i, p := range promises {
+		Printf("pipe %v %v", i, p)
+		p := p
+		go func() {
+			pipe <- <-p
+			if atomic.AddInt32(&stop, -1) == 0 {
+				Printf("close(pipe)")
+				close(pipe)
+			}
+			Printf("stop = %v", atomic.LoadInt32(&stop))
+		}()
+	}
 
 	res := make([]V, len(list))
-
-	for i := range list {
-		m := <-promises[i]
-		if m.error != nil {
-			return nil, m.error
+	for range promises {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			m := <-pipe
+			if m.error != nil {
+				return nil, m.error
+			}
+			res[m.Index] = m.Value
+			Printf("<- promises[%v] %v", m.Index, res)
 		}
-		res[i] = m.Value
-		//<-traffic
-		Printf("<- promises[%v] %v", i, res[i])
 	}
 
 	fmt.Println("", res, time.Now().Sub(total))

@@ -142,9 +142,9 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 }
 
 // array of channels
-func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, error), concurrency int) ([]V, error) {
+func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
-		concurrency = len(list)
+		concurrency = len(args)
 	}
 	Printf("CONCURRENCY: %v", concurrency)
 
@@ -155,7 +155,7 @@ func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, 
 		Index int
 		Value V
 		error
-	}, len(list))
+	}, len(args))
 
 	traffic := make(chan struct{}, concurrency)
 	defer close(traffic)
@@ -164,13 +164,13 @@ func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, 
 		Index int
 		Value V
 		error
-	}, len(list))
+	}, len(args))
 
 	delta, total := time.Now(), time.Now()
 
 	var stop int32
 
-	for i, key := range list {
+	for i, arg := range args {
 		if atomic.LoadInt32(&stop) == 1 {
 			promises = promises[0:i]
 			break
@@ -182,12 +182,10 @@ func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, 
 			error
 		}, 1)
 		promises[i] = p
-		i := i
-		key := key
-		go func() {
-			Printf("go func() %v %v", i, key)
-			value, err := f(key)
-			Printf("JOB DONE: %v %v %v", key, value, err)
+		go func(i int, arg A) {
+			Printf("go func() %v %v", i, arg)
+			value, err := f(arg)
+			Printf("JOB DONE: %v %v %v", arg, value, err)
 			if err != nil {
 				atomic.CompareAndSwapInt32(&stop, 0, 1)
 			}
@@ -197,9 +195,9 @@ func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, 
 				error
 			}{i, value, err}
 			close(p)
-			Printf("promises[%v] <- %v %v (%vms)", i, key, value, time.Now().Sub(delta))
+			Printf("promises[%v] <- %v %v (%vms)", i, arg, value, time.Now().Sub(delta))
 			<-traffic
-		}()
+		}(i, arg)
 	}
 	Printf("-------looped len(promises) = %v", len(promises))
 
@@ -217,7 +215,7 @@ func MapArr[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, 
 		}()
 	}
 
-	res := make([]V, len(list))
+	res := make([]V, len(args))
 	for range promises {
 		select {
 		case <-ctx.Done():

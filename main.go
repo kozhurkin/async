@@ -33,12 +33,12 @@ func main() {
 	for i := 1; i <= 1; i++ {
 		res, err := MapWg(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
+			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
-			<-time.After(time.Duration(rnd) * time.Millisecond)
 			return k, nil
-		}, 0)
+		}, 3)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -63,7 +63,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 	}
 	Printf("CONCURRENCY: %v", concurrency)
 	errchan := make(chan error)
-	traffic := make(chan struct{}, concurrency-1)
+	traffic := make(chan struct{}, concurrency)
 	output := make(chan struct {
 		Key   K
 		Value V
@@ -77,7 +77,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 	wg.Add(len(list))
 	go func() {
 		wg.Wait()
-		fmt.Println("---------wg.Wait()")
+		Printf("---------wg.Wait()")
 		close(output)
 	}()
 
@@ -87,9 +87,6 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 			if m.error != nil {
 				errchan <- m.error
 				cancel()
-				for range traffic {
-					Printf("for range traffic")
-				}
 				go func() {
 					for range output {
 						Printf("for range output")
@@ -98,8 +95,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 				break
 			}
 			res[m.Key] = m.Value
-			Printf("%v %v", res, len(traffic))
-			<-traffic
+			Printf("%v", res)
 		}
 		Printf("---------- END OUTPUT LOOP")
 		close(errchan)
@@ -109,11 +105,12 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 		for _, key := range list {
 			select {
 			case <-ctx.Done():
-				fmt.Println("SKIP", key)
+				Printf("SKIP %v", key)
 				wg.Done()
 				continue
 			default:
 			}
+			traffic <- struct{}{}
 			go func(key K) {
 				Printf("go func(key K) %v", key)
 				value, err := f(key)
@@ -124,11 +121,8 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 					error
 				}{key, value, err}
 				wg.Done()
+				<-traffic
 			}(key)
-			Printf("traffic <- struct{}{} ... %v", len(traffic))
-			traffic <- struct{}{}
-			Printf("traffic <- struct{}{}")
-
 		}
 		Printf("---------- END INPUT LOOP %v", len(traffic))
 		close(traffic)

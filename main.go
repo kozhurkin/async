@@ -32,7 +32,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
-	for i := 1; i <= 10000; i++ {
+	for i := 1; i <= 1000; i++ {
 		res, err := MapArr(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(10)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
@@ -40,7 +40,7 @@ OUT:
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 2)
+		}, 3)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -157,8 +157,7 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 		error
 	}, len(args))
 
-	traffic := make(chan struct{}, concurrency)
-	defer close(traffic)
+	traffic := make(chan struct{}, concurrency-1)
 
 	pipe := make(chan struct {
 		Index int
@@ -169,41 +168,44 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 	delta, total := time.Now(), time.Now()
 
 	var stop int32
+	var wg = sync.WaitGroup{}
 
-	for i, arg := range args {
-		if atomic.LoadInt32(&stop) == 1 {
-			promises = promises[0:i]
-			break
-		}
-		traffic <- struct{}{}
-		p := make(chan struct {
-			Index int
-			Value V
-			error
-		}, 1)
-		promises[i] = p
-		go func(i int, arg A) {
-			Printf("go func() %v %v", i, arg)
-			value, err := f(arg)
-			Printf("JOB DONE: %v %v %v", arg, value, err)
-			if err != nil {
-				atomic.CompareAndSwapInt32(&stop, 0, 1)
+	go func() {
+		for i, arg := range args {
+			if atomic.LoadInt32(&stop) == 1 {
+				promises = promises[0:i]
+				fmt.Println("SKIP", len(promises))
+				break
 			}
-			p <- struct {
+			p := make(chan struct {
 				Index int
 				Value V
 				error
-			}{i, value, err}
-			close(p)
-			Printf("promises[%v] <- %v %v (%vms)", i, arg, value, time.Now().Sub(delta))
-			<-traffic
-		}(i, arg)
-	}
-	Printf("------- looped len(promises) = %v", len(promises))
+			}, 1)
+			promises[i] = p
+			Printf("promises[%v] = p", i)
+			go func(i int, arg A) {
+				Printf("go func() %v %v", i, arg)
+				value, err := f(arg)
+				Printf("JOB DONE: %v %v %v", arg, value, err)
+				if err != nil {
+					atomic.CompareAndSwapInt32(&stop, 0, 1)
+				}
+				p <- struct {
+					Index int
+					Value V
+					error
+				}{i, value, err}
+				close(p)
+				Printf("promises[%v] <- %v %v (%vms)", i, arg, value, time.Now().Sub(delta))
+				<-traffic
+			}(i, arg)
+			traffic <- struct{}{}
+		}
+		close(traffic)
+		Printf("close(traffic)")
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(promises))
-	go func() {
+		wg.Add(len(promises))
 		for i, p := range promises {
 			Printf("pipe %v %v", i, p)
 			i, p := i, p
@@ -213,7 +215,7 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 				Printf("wg.Done(%v)", i)
 			}()
 		}
-		Printf("------- promises to pipe looped")
+		Printf("pipe <- <-p")
 
 		wg.Wait()
 		Printf("close(pipe)")
@@ -221,13 +223,16 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 	}()
 
 	res := make([]V, len(args))
-	for range promises {
+	for {
 		select {
 		case <-ctx.Done():
+			fmt.Println("<-ctx.Done():")
 			atomic.CompareAndSwapInt32(&stop, 0, 1)
 			return nil, ctx.Err()
-		default:
-			m := <-pipe
+		case m, ok := <-pipe:
+			if !ok {
+				return res, nil
+			}
 			if m.error != nil {
 				return nil, m.error
 			}

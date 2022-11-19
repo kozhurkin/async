@@ -240,10 +240,6 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 			Printf("<- promises[%v] %v", m.Index, res)
 		}
 	}
-
-	fmt.Println("", res, time.Now().Sub(total))
-
-	return res, nil
 }
 
 // workers

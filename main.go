@@ -72,6 +72,8 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 	})
 
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	wg := sync.WaitGroup{}
 	res := make(map[K]V, 0)
 
@@ -80,7 +82,6 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 			Printf("m := <-output: %v %v %v", m.Key, m.Value, m.error)
 			if m.error != nil {
 				errchan <- m.error
-				cancel()
 				go func() {
 					for range output {
 						Printf("for range output")
@@ -134,7 +135,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 		if err != nil {
 			return nil, err
 		}
-		return res, err
+		return res, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

@@ -17,7 +17,6 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	ctx, cancel = context.WithCancel(ctx)
 
 	// handle SIGINT (control+c)
 	go func() {
@@ -32,21 +31,21 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := MapW(ctx, data, func(k int) (int, error) {
+		res, err := MapWg(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 3)
+		}, 1)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
 			fmt.Println("BREAAAAAK")
-			<-time.After(time.Second)
-			return
+			break OUT
 		default:
 			continue
 		}
@@ -106,6 +105,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 			}
 			traffic <- struct{}{}
 			wg.Add(1)
+			Printf("wg.Add(%v)", key)
 			go func(key K) {
 				Printf("go func(key K) %v", key)
 				value, err := f(key)
@@ -115,6 +115,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 					Value V
 					error
 				}{key, value, err}
+				Printf("wg.Done(%v)", key)
 				wg.Done()
 				<-traffic
 			}(key)

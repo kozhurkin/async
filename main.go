@@ -32,14 +32,14 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	for i := 1; i <= 1; i++ {
-		res, err := MapWg(ctx, data, func(k int) (int, error) {
+		res, err := MapW(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 1)
+		}, 3)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -50,7 +50,7 @@ func main() {
 			continue
 		}
 	}
-	<-time.After(time.Second)
+	<-time.After(time.Duration(3) * time.Second)
 }
 
 func Printf(template string, rest ...interface{}) {
@@ -230,4 +230,86 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 	fmt.Println("", res, time.Now().Sub(total))
 
 	return res, nil
+}
+
+// workers
+func MapW[A comparable, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) (map[A]V, error) {
+	if concurrency == 0 {
+		concurrency = len(args)
+	}
+
+	in, out := make(chan A), make(chan struct {
+		Key   A
+		Value V
+		error
+	}, concurrency)
+
+	wg := sync.WaitGroup{}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	worker := func(i int) {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			arg, ok := <-in
+			if !ok {
+				return
+			}
+			value, err := f(arg)
+			Printf("worker %v done, res[%v] = %v, err = %v", i+1, arg, value, err)
+			out <- struct {
+				Key   A
+				Value V
+				error
+			}{arg, value, err}
+		}
+	}
+
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go worker(i)
+	}
+	Printf("%v workers created", concurrency)
+
+	go func() {
+	OUT:
+		for _, arg := range args {
+			select {
+			case <-ctx.Done():
+				fmt.Println("skipping input")
+				break OUT
+			case in <- arg:
+			}
+		}
+		close(in)
+		Printf("input channel closed")
+	}()
+
+	go func() {
+		wg.Wait()
+		close(out)
+		Printf("ouptut channel closed")
+	}()
+
+	result := make(map[A]V, len(args))
+	for m := range out {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			if m.error != nil {
+				defer cancel()
+				return nil, m.error
+			}
+			result[m.Key] = m.Value
+		}
+	}
+
+	return result, nil
 }

@@ -32,15 +32,15 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
-	for i := 1; i <= 1000; i++ {
-		res, err := MapArr(ctx, data, func(k int) (int, error) {
-			rnd := rand.Intn(10)
-			<-time.After(time.Duration(rnd) * time.Millisecond)
+	for i := 1; i <= 1; i++ {
+		res, err := MapWg(ctx, data, func(k int) (int, error) {
+			rnd := rand.Intn(1000)
+			<-time.After(time.Duration(rnd+1000) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 3)
+		}, 1)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -64,7 +64,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 	}
 	Printf("CONCURRENCY: %v", concurrency)
 	errchan := make(chan error)
-	traffic := make(chan struct{}, concurrency)
+	traffic := make(chan struct{}, concurrency-1)
 	output := make(chan struct {
 		Key   K
 		Value V
@@ -104,7 +104,6 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 				continue
 			default:
 			}
-			traffic <- struct{}{}
 			wg.Add(1)
 			Printf("wg.Add(%v)", key)
 			go func(key K) {
@@ -120,6 +119,7 @@ func MapWg[K comparable, V any](ctx context.Context, list []K, f func(k K) (V, e
 				wg.Done()
 				<-traffic
 			}(key)
+			traffic <- struct{}{}
 		}
 		Printf("---------- END INPUT LOOP %v", len(traffic))
 		close(traffic)
@@ -165,8 +165,6 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 		error
 	}, len(args))
 
-	delta, total := time.Now(), time.Now()
-
 	var stop int32
 	var wg = sync.WaitGroup{}
 
@@ -197,7 +195,7 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 					error
 				}{i, value, err}
 				close(p)
-				Printf("promises[%v] <- %v %v (%vms)", i, arg, value, time.Now().Sub(delta))
+				Printf("promises[%v] <- %v %v", i, arg, value)
 				<-traffic
 			}(i, arg)
 			traffic <- struct{}{}

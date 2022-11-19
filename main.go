@@ -31,9 +31,9 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	for i := 1; i <= 1; i++ {
+	for i := 1; i <= 1000; i++ {
 		res, err := MapW(ctx, data, func(k int) (int, error) {
-			rnd := rand.Intn(1000)
+			rnd := rand.Intn(10)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")

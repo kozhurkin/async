@@ -32,15 +32,15 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
-	for i := 1; i <= 1; i++ {
-		res, err := MapWg(ctx, data, func(k int) (int, error) {
-			rnd := rand.Intn(1000)
+	for i := 1; i <= 10000; i++ {
+		res, err := MapArr(ctx, data, func(k int) (int, error) {
+			rnd := rand.Intn(10)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 1)
+		}, 2)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -199,26 +199,32 @@ func MapArr[A any, V any](ctx context.Context, args []A, f func(A) (V, error), c
 			<-traffic
 		}(i, arg)
 	}
-	Printf("-------looped len(promises) = %v", len(promises))
+	Printf("------- looped len(promises) = %v", len(promises))
 
-	stop = int32(len(promises))
-	for i, p := range promises {
-		Printf("pipe %v %v", i, p)
-		p := p
-		go func() {
-			pipe <- <-p
-			if atomic.AddInt32(&stop, -1) == 0 {
-				Printf("close(pipe)")
-				close(pipe)
-			}
-			Printf("stop = %v", atomic.LoadInt32(&stop))
-		}()
-	}
+	wg := sync.WaitGroup{}
+	wg.Add(len(promises))
+	go func() {
+		for i, p := range promises {
+			Printf("pipe %v %v", i, p)
+			i, p := i, p
+			go func() {
+				pipe <- <-p
+				wg.Done()
+				Printf("wg.Done(%v)", i)
+			}()
+		}
+		Printf("------- promises to pipe looped")
+
+		wg.Wait()
+		Printf("close(pipe)")
+		close(pipe)
+	}()
 
 	res := make([]V, len(args))
 	for range promises {
 		select {
 		case <-ctx.Done():
+			atomic.CompareAndSwapInt32(&stop, 0, 1)
 			return nil, ctx.Err()
 		default:
 			m := <-pipe

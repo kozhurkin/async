@@ -33,14 +33,14 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := MapWg(ctx, data, func(k int) (int, error) {
+		res, err := MapW(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
-			<-time.After(time.Duration(rnd+1000) * time.Millisecond)
+			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, errors.New("unknown error")
 			}
 			return k, nil
-		}, 1)
+		}, 2)
 		fmt.Printf("[%v] RESULT: %v %v\n", i, res, err)
 		select {
 		case <-ctx.Done():
@@ -313,7 +313,6 @@ func MapW[A comparable, V any](ctx context.Context, args []A, f func(A) (V, erro
 			return nil, ctx.Err()
 		default:
 			if m.error != nil {
-				defer cancel()
 				return nil, m.error
 			}
 			result[m.Key] = m.Value

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/504dev/async"
+	"github.com/kozhurkin/async"
 	"math/rand"
 	"os"
 	"os/signal"

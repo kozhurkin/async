@@ -1,4 +1,4 @@
-module github.com/504dev/async
+module github.com/kozhurkin/async
 
 go 1.19
 

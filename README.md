@@ -11,7 +11,7 @@ Helper for asynchronous work in golang powered by generics
 Installing
 ----------
 
-	go get github.com/504dev/async
+	go get github.com/kozhurkin/async
 
 Usage
 -----

@@ -32,7 +32,7 @@ Usage
 ```
 #### AsyncToArray()
 ``` golang
-    socials := []string{
+    urls := []string{
         "https://www.youtube.com",
         "https://www.instagram.com",
         "https://www.tiktok.com",
@@ -41,7 +41,7 @@ Usage
     defer cancel()
     
     concurrency := 2
-    responses, err := async.AsyncToArray(ctx, socials, func(url string) (string, error) {
+    responses, err := async.AsyncToArray(ctx, urls, func(url string) (string, error) {
         resp, err := http.Get(url)
         if err != nil {
             return nil, err
@@ -70,8 +70,8 @@ Usage
     ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5 * time.Second))
     defer cancel()
     
-    responses, err := async.AsyncToArray(ctx, socials, func(id string) (int, error) {
-        views, err := youtube.GetViews(id)
+    responses, err := async.AsyncToArray(ctx, videos, func(vid string) (int, error) {
+        views, err := youtube.GetViews(vid)
         if err != nil {
             return nil, err
         }

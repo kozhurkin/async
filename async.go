@@ -11,6 +11,9 @@ import (
 
 var debug = 0
 
+func SetDebug(d int) {
+	debug = d
+}
 func printDebug(template string, rest ...interface{}) {
 	if debug == 1 {
 		args := append([]interface{}{time.Now().String()[0:25]}, rest...)
@@ -40,10 +43,10 @@ func AsyncToMap[A comparable, V any](ctx context.Context, args []A, f func(A) (V
 }
 
 func AsyncToArray[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
-	return MapWorkers(ctx, args, f, concurrency)
+	return AsyncWorkers(ctx, args, f, concurrency)
 }
 
-func MapChan[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
+func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -127,7 +130,7 @@ func MapChan[A any, V any](ctx context.Context, args []A, f func(k A) (V, error)
 }
 
 // array of channels
-func MapPromise[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromise[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -224,7 +227,7 @@ func MapPromise[A any, V any](ctx context.Context, args []A, f func(A) (V, error
 }
 
 // workers
-func MapWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}

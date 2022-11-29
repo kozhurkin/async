@@ -20,6 +20,7 @@ func main() {
 	//fmt.Println(time.Now(), []time.Time{a2, b2})
 	//return
 	rand.Seed(time.Now().UnixNano())
+	async.SetDebug(1)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -39,7 +40,7 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := async.MapPromise(ctx, data, func(k int) (int, error) {
+		res, err := async.AsyncPromise(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {

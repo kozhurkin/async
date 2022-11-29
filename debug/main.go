@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	fmt.Println(map[string]int{"aaa": 11e9, "bbb": 5.7e9})
 	//fmt.Println(time.Now())
 	//pa := async.Pipeline(func() time.Time { return <-time.After(2 * time.Second) })
 	//pb := async.Pipeline(func() time.Time { return <-time.After(3 * time.Second) })

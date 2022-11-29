@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/504dev/async"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -11,10 +12,12 @@ import (
 
 func main() {
 	//fmt.Println(time.Now())
-	//pa, pb := Pipeline(func() time.Time { return <-time.After(2 * time.Second) }),
-	//	Pipeline(func() time.Time { return <-time.After(3 * time.Second) })
+	//pa := async.Pipeline(func() time.Time { return <-time.After(2 * time.Second) })
+	//pb := async.Pipeline(func() time.Time { return <-time.After(3 * time.Second) })
 	//a, b := <-pa, <-pb
 	//fmt.Println(time.Now(), []time.Time{a, b})
+	//a2, b2 := <-pa, <-pb
+	//fmt.Println(time.Now(), []time.Time{a2, b2})
 	//return
 	rand.Seed(time.Now().UnixNano())
 
@@ -36,7 +39,7 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := MapPromise2(ctx, data, func(k int) (int, error) {
+		res, err := async.MapPromise(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {

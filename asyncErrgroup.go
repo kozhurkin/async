@@ -5,7 +5,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// errgroup
+// throws "context canceled" if an error occurs before/after cancelation: NO/NO
+// does not wait for parallel jobs when an error occurs or canceled: NO
 func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)

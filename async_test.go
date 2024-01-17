@@ -65,6 +65,16 @@ func BenchmarkAsyncPromise2(b *testing.B) {
 	}
 }
 
+func BenchmarkAsyncPromise3(b *testing.B) {
+	ctx := context.Background()
+	rand.Seed(time.Now().UnixNano())
+	for c := 0; c <= len(data); c++ {
+		for i := 1; i <= b.N; i++ {
+			AsyncPromise3(ctx, data, handler, c)
+		}
+	}
+}
+
 func BenchmarkAsyncWorkers(b *testing.B) {
 	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())

@@ -16,20 +16,6 @@ Installing
 Usage
 -----
 
-#### Pipeline()
-``` golang
-    ts := time.Now()
-    pa := async.Pipeline(func() int {
-        <-time.After(2 * time.Second) // working 2 seconds
-        return 2023
-    })
-    pb := async.Pipeline(func() string {
-        <-time.After(3 * time.Second) // working 3 seconds
-        return "Happy New Year!"
-    })
-    a, b := <-pa, <-pb // parallel execution
-    fmt.Println(time.Now().Sub(ts)) // execution time 3.0 seconds
-```
 #### AsyncToArray()
 ``` golang
     urls := []string{
@@ -40,6 +26,7 @@ Usage
     ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5 * time.Second))
     defer cancel()
     
+    // concurrency = 2 means that no more than 2 tasks can be performed at a time
     concurrency := 2
     responses, err := async.AsyncToArray(ctx, urls, func(url string) (string, error) {
         resp, err := http.Get(url)
@@ -70,13 +57,15 @@ Usage
     ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5 * time.Second))
     defer cancel()
     
+    // concurrency = 0 means that all tasks will be executed at the same time
+    concurrency := 0
     responses, err := async.AsyncToArray(ctx, videos, func(vid string) (int, error) {
         views, err := youtube.GetViews(vid)
         if err != nil {
             return nil, err
         }
         return views, nil
-    }, 0) // all requests at the same time
+    }, 0) 
     
     if err != nil {
         log.Fatalln(err)
@@ -85,4 +74,18 @@ Usage
     fmt.Println(responses)
     // map[XqZsoesa55w:11e9 kJQP7kiw5Fk:8e9 RgKAFK5djSk:5.7e9]
 
+```
+#### Pipeline()
+``` golang
+    ts := time.Now()
+    pa := async.Pipeline(func() int {
+        <-time.After(2 * time.Second) // working 2 seconds
+        return 2023
+    })
+    pb := async.Pipeline(func() string {
+        <-time.After(3 * time.Second) // working 3 seconds
+        return "Happy New Year!"
+    })
+    a, b := <-pa, <-pb // parallel execution
+    fmt.Println(time.Now().Sub(ts)) // execution time 3.0 seconds
 ```

@@ -3,6 +3,7 @@ package async
 import (
 	"context"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -89,6 +90,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 			select {
 			case <-ctx.Done():
 				printDebug("SKIP %v", arg)
+				// TODO break OUT?
 				continue
 			default:
 			}
@@ -175,7 +177,7 @@ func AsyncPromise[A any, V any](ctx context.Context, args []A, f func(A) (V, err
 				if err != nil {
 					atomic.CompareAndSwapInt32(&stop, 0, 1)
 				}
-				printDebug("promises[%v] <- {%v %v %v}", i, arg, value)
+				printDebug("promises[%v] <- {%v %v}", i, arg, value)
 				<-traffic
 				return struct {
 					Index int
@@ -232,10 +234,11 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, err
 		concurrency = len(args)
 	}
 
-	in, out := make(chan struct {
+	in := make(chan struct {
 		Index int
 		Arg   A
-	}), make(chan struct {
+	})
+	out := make(chan struct {
 		Index int
 		Value V
 		error
@@ -253,14 +256,14 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, err
 			case <-ctx.Done():
 				return
 			default:
-				runtime.Gosched()
+				runtime.Gosched() // TODO comment why
 			}
 			input, ok := <-in
 			if !ok {
 				return
 			}
 			value, err := f(input.Arg)
-			printDebug("worker %v done, res[%v] = %v, err = %v", w+1, input.Arg, value, err)
+			printDebug("worker %v done, res[%v] = f(%v) = %v, err = %v", w+1, input.Index, input.Arg, value, err)
 			out <- struct {
 				Index int
 				Value V
@@ -312,4 +315,71 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, err
 	}
 
 	return result, nil
+}
+
+// errgroup
+func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+	if concurrency == 0 {
+		concurrency = len(args)
+	}
+
+	printDebug("%v %v", args, concurrency)
+	out := make(chan struct {
+		Index int
+		Value V
+	}, concurrency)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	wg := new(errgroup.Group)
+	traffic := make(chan struct{}, concurrency-1)
+
+	var err error
+	result := make([]V, len(args))
+
+	go func() {
+		for index, arg := range args {
+			index := index
+			arg := arg
+			select {
+			case <-ctx.Done():
+				printDebug("skipping input %v %v", index, arg)
+				continue
+			default:
+			}
+			wg.Go(func() error {
+				printDebug("wg.Go %v", arg)
+				value, err := f(arg)
+				printDebug("done: %v %v %v", arg, value, err)
+				go func() {
+					<-traffic
+				}()
+				if err != nil {
+					cancel()
+					return err
+				}
+				out <- struct {
+					Index int
+					Value V
+				}{index, value}
+				printDebug("return %v", arg)
+				return nil
+			})
+			traffic <- struct{}{}
+		}
+		printDebug("close(traffic)")
+		close(traffic)
+
+		err = wg.Wait()
+		printDebug("ERRR %v", err)
+		close(out)
+	}()
+
+	for msg := range out {
+		printDebug("msg %v", msg)
+		result[msg.Index] = msg.Value
+	}
+
+	return result, err
 }

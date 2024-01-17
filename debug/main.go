@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	fmt.Println(map[string]int{"aaa": 11e9, "bbb": 5.7e9})
 	//fmt.Println(time.Now())
 	//pa := async.Pipeline(func() time.Time { return <-time.After(2 * time.Second) })
 	//pb := async.Pipeline(func() time.Time { return <-time.After(3 * time.Second) })
@@ -41,8 +40,8 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := async.AsyncPromise(ctx, data, func(k int) (int, error) {
-			rnd := rand.Intn(1000)
+		res, err := async.AsyncWorkers(ctx, data, func(k int) (int, error) {
+			rnd := rand.Intn(10000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, fmt.Errorf("unknown error (%v)", k)

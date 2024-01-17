@@ -64,3 +64,13 @@ func BenchmarkAsyncWorkers(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkAsyncErrgroup(b *testing.B) {
+	ctx := context.Background()
+	rand.Seed(time.Now().UnixNano())
+	for c := 0; c <= len(data); c++ {
+		for i := 1; i <= b.N; i++ {
+			AsyncErrgroup(ctx, data, handler, c)
+		}
+	}
+}

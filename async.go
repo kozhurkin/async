@@ -67,29 +67,13 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 	res := make([]V, len(args))
 
 	go func() {
-		var err error
-		for msg := range output {
-			printDebug("CHAN msg := struct {%v, %v, %v}", msg.Index, msg.Value, msg.error)
-			if msg.error != nil {
-				err = msg.error
-				break
-			}
-			res[msg.Index] = msg.Value
-			printDebug("%v", res)
-		}
-		printDebug("LOOP OUTPUT DONE")
-		end <- err
-		close(end)
-	}()
-
-	go func() {
-	OUT:
+	LOOP:
 		for i, arg := range args {
 			select {
 			case <-ctx.Done():
 				printDebug("SKIP %v", arg)
 				// TODO break OUT?
-				break OUT
+				break LOOP
 			default:
 			}
 			wg.Add(1)
@@ -122,6 +106,22 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 		wg.Wait()
 		printDebug("output channel closed (tail %v)", len(output))
 		close(output)
+	}()
+
+	go func() {
+		var err error
+		for msg := range output {
+			printDebug("CHAN msg := struct {%v, %v, %v}", msg.Index, msg.Value, msg.error)
+			if msg.error != nil {
+				err = msg.error
+				break
+			}
+			res[msg.Index] = msg.Value
+			printDebug("%v", res)
+		}
+		printDebug("LOOP OUTPUT DONE")
+		end <- err
+		close(end)
 	}()
 
 	select {

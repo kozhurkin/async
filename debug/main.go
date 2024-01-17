@@ -11,6 +11,19 @@ import (
 )
 
 func main() {
+	//fmt.Println("go")
+	//wg := new(errgroup.Group)
+	//
+	//wg.Go(func() (err error) {
+	//	<-time.After(5 * time.Second)
+	//	return errors.New("test")
+	//})
+	//wg.Go(func() (err error) {
+	//	return errors.New("test")
+	//})
+	//err := wg.Wait()
+	//fmt.Println(err)
+	//return
 	//fmt.Println(time.Now())
 	//pa := async.Pipeline(func() time.Time { return <-time.After(2 * time.Second) })
 	//pb := async.Pipeline(func() time.Time { return <-time.After(3 * time.Second) })
@@ -40,8 +53,8 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := async.AsyncSemaphore(ctx, data, func(k int) (int, error) {
-			rnd := rand.Intn(10000)
+		res, err := async.AsyncPromise2(ctx, data, func(k int) (int, error) {
+			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, fmt.Errorf("unknown error (%v)", k)

@@ -26,7 +26,7 @@ func TestPipeline(t *testing.T) {
 
 var data = []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 var handler = func(k int) (int, error) {
-	rnd := rand.Intn(10)
+	rnd := rand.Intn(10000)
 	runtime.Gosched()
 	//<-time.After(time.Duration(rnd) * time.Nanosecond)
 	if rand.Intn(len(data)) == 0 {
@@ -51,6 +51,16 @@ func BenchmarkAsyncPromise(b *testing.B) {
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
 			AsyncPromise(ctx, data, handler, c)
+		}
+	}
+}
+
+func BenchmarkAsyncPromise2(b *testing.B) {
+	ctx := context.Background()
+	rand.Seed(time.Now().UnixNano())
+	for c := 0; c <= len(data); c++ {
+		for i := 1; i <= b.N; i++ {
+			AsyncPromise2(ctx, data, handler, c)
 		}
 	}
 }

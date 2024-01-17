@@ -52,7 +52,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 		concurrency = len(args)
 	}
 	printDebug("CONCURRENCY: %v", concurrency)
-	errchan := make(chan error)
+	end := make(chan error)
 	traffic := make(chan struct{}, concurrency-1)
 	output := make(chan struct {
 		Index int
@@ -67,61 +67,66 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 	res := make([]V, len(args))
 
 	go func() {
-		for m := range output {
-			printDebug("m := <-output: %v %v %v", m.Index, m.Value, m.error)
-			if m.error != nil {
-				errchan <- m.error
-				go func() {
-					for range output {
-						printDebug("for range output")
-					}
-				}()
+		var err error
+		for msg := range output {
+			printDebug("CHAN msg := struct {%v, %v, %v}", msg.Index, msg.Value, msg.error)
+			if msg.error != nil {
+				err = msg.error
 				break
 			}
-			res[m.Index] = m.Value
+			res[msg.Index] = msg.Value
 			printDebug("%v", res)
 		}
-		printDebug("---------- END OUTPUT LOOP")
-		close(errchan)
+		printDebug("LOOP OUTPUT DONE")
+		end <- err
+		close(end)
 	}()
 
 	go func() {
+	OUT:
 		for i, arg := range args {
 			select {
 			case <-ctx.Done():
 				printDebug("SKIP %v", arg)
 				// TODO break OUT?
-				continue
+				break OUT
 			default:
 			}
 			wg.Add(1)
-			printDebug("wg.Add(%v)", arg)
+			printDebug(" + wg.Add(%v)", arg)
 			go func(i int, arg A) {
-				printDebug("go func(key K) %v", arg)
+				printDebug("go func(%v)", arg)
 				value, err := f(arg)
-				printDebug("JOB DONE %v %v", value, err)
+				printDebug("CHAN <- struct {%v, %v, %v}", i, value, err)
 				output <- struct {
 					Index int
 					Value V
 					error
 				}{i, value, err}
-				printDebug("wg.Done(%v)", arg)
+				printDebug(" - wg.Done(%v)", arg)
 				wg.Done()
+				// switch goroutine to handle error and exit before next iteration
+				// it works without it, but it saves you from unnecessarily running the task
+				if err != nil {
+					runtime.Gosched()
+				}
 				<-traffic
 			}(i, arg)
 			traffic <- struct{}{}
 		}
-		printDebug("---------- END INPUT LOOP %v", len(traffic))
+		printDebug("LOOP INPUT DONE")
+		printDebug("traffic channel closed (tail %v)", len(traffic))
 		close(traffic)
 
+		printDebug("wg.Wait()")
 		wg.Wait()
-		printDebug("---------wg.Wait()")
+		printDebug("output channel closed (tail %v)", len(output))
 		close(output)
 	}()
 
 	select {
-	case err, ok := <-errchan:
-		printDebug("%v %v", err, ok)
+	case err, ok := <-end:
+		printDebug("err, ok := %v, %v", err, ok)
 		if err != nil {
 			return nil, err
 		}

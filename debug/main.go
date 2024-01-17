@@ -40,7 +40,7 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := async.AsyncWorkers(ctx, data, func(k int) (int, error) {
+		res, err := async.AsyncSemaphore(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(10000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {

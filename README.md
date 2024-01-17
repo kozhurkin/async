@@ -87,5 +87,5 @@ Usage
         return "Happy New Year!"
     })
     a, b := <-pa, <-pb // parallel execution
-    fmt.Println(time.Now().Sub(ts)) // execution time 3.0 seconds
+    fmt.Println(time.Now().Sub(ts)) // execution time 3 seconds (not 5)
 ```

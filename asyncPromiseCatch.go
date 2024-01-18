@@ -2,9 +2,9 @@ package async
 
 import "context"
 
-// throws "context canceled" if an error occurs before/after cancelation: NO/NO
-// does not wait for parallel jobs when an error occurs or canceled: NO
-func AsyncPromise2[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+// throws "context canceled" if an error occurs before/after cancellation: NO/NO
+// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
+func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -16,7 +16,7 @@ func AsyncPromise2[A any, V any](ctx context.Context, args []A, f func(A) (V, er
 	promises := make([]chan V, len(args))
 
 	traffic := make(chan struct{}, concurrency-1)
-	errChan := make(chan error, concurrency)
+	catch := make(chan error, concurrency)
 
 LOOP:
 	for i, arg := range args {
@@ -32,7 +32,7 @@ LOOP:
 			printDebug("JOB START: i=%v arg=%v", i, arg)
 			value, err := f(arg)
 			if err != nil {
-				errChan <- err
+				catch <- err
 				cancel()
 			}
 			printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
@@ -53,9 +53,9 @@ LOOP:
 		res[i] = msg
 	}
 
-	close(errChan)
+	close(catch)
 
-	err, ok := <-errChan
+	err, ok := <-catch
 	printDebug("err, ok := %v, %v", err, ok)
 	if err != nil {
 		return res, err

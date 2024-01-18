@@ -5,8 +5,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// throws "context canceled" if an error occurs before/after cancelation: NO/NO
-// does not wait for parallel jobs when an error occurs or canceled: NO
+// throws "context canceled" if an error occurs before/after cancellation: NO/NO
+// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
 func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -41,19 +41,16 @@ func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(A) (V, er
 				printDebug("wg.Go %v", arg)
 				value, err := f(arg)
 				printDebug("done: %v %v %v", arg, value, err)
-				go func() {
-					<-traffic
-				}()
 				if err != nil {
 					cancel()
-					return err
 				}
+				<-traffic
 				out <- struct {
 					Index int
 					Value V
 				}{index, value}
 				printDebug("return %v", arg)
-				return nil
+				return err
 			})
 			traffic <- struct{}{}
 		}

@@ -11,6 +11,26 @@ import (
 )
 
 func main() {
+	//
+	//t := time.Now()
+	//fmt.Println("start")
+	//
+	//p2 := async.Promise(func() (int, error) {
+	//	<-time.After(2 * time.Second)
+	//	return 2, nil
+	//})
+	//p2.Start()
+	//
+	//p3 := async.Promise(func() (int, error) {
+	//	<-time.After(3 * time.Second)
+	//	return 3, nil
+	//})
+	//p3.Start()
+	//
+	//r2, r3 := <-p2.Out, <-p3.Out
+	//
+	//fmt.Println("___", r2, r3, time.Now().Sub(t).Seconds())
+
 	//fmt.Println("go")
 	//wg := new(errgroup.Group)
 	//
@@ -53,7 +73,7 @@ func main() {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := async.AsyncPromise2(ctx, data, func(k int) (int, error) {
+		res, err := async.AsyncErrgroup(ctx, data, func(k int) (int, error) {
 			rnd := rand.Intn(1000)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {

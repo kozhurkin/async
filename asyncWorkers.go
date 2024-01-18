@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// throws "context canceled" if an error occurs before/after cancelation: YES/YES
+// throws "context canceled" if an error occurs before/after cancellation: YES/YES
 // does not wait for parallel jobs when an error occurs or canceled: YES
 func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {

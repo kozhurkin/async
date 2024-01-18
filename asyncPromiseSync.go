@@ -5,9 +5,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// throws "context canceled" if an error occurs before/after cancelation: NO/NO
-// does not wait for parallel jobs when an error occurs or canceled: NO
-func AsyncPromise3[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+// throws "context canceled" if an error occurs before/after cancellation: NO/YES
+// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
+
+func AsyncPromiseSync[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -38,15 +39,16 @@ LOOP:
 			printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
 			<-traffic
 			ch <- value
-			if err != nil {
-				select {
-				case <-ctx.Done():
-					return nil
-				default:
-					cancel()
-				}
+			if err == nil {
+				return nil
 			}
-			return err
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				cancel()
+				return err
+			}
 		})
 		promises[i] = ch
 		printDebug("promises[%v] = p", i)

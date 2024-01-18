@@ -6,8 +6,9 @@ import (
 	"sync/atomic"
 )
 
-// array of channels
-func AsyncPromise[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+// throws "context canceled" if an error occurs before/after cancellation: YES/YES
+// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): YES
+func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}

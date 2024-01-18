@@ -35,6 +35,16 @@ var handler = func(k int) (int, error) {
 	return rnd, nil
 }
 
+func BenchmarkAsyncPromise22(b *testing.B) {
+	ctx := context.Background()
+	rand.Seed(time.Now().UnixNano())
+	for c := 0; c <= len(data); c++ {
+		for i := 1; i <= b.N; i++ {
+			AsyncPromise22(ctx, data, handler, c)
+		}
+	}
+}
+
 func BenchmarkAsyncSemaphore(b *testing.B) {
 	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
@@ -45,32 +55,32 @@ func BenchmarkAsyncSemaphore(b *testing.B) {
 	}
 }
 
-func BenchmarkAsyncPromise(b *testing.B) {
+func BenchmarkAsyncPromiseAtomic(b *testing.B) {
 	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromise(ctx, data, handler, c)
+			AsyncPromiseAtomic(ctx, data, handler, c)
 		}
 	}
 }
 
-func BenchmarkAsyncPromise2(b *testing.B) {
+func BenchmarkAsyncPromiseCatch(b *testing.B) {
 	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromise2(ctx, data, handler, c)
+			AsyncPromiseCatch(ctx, data, handler, c)
 		}
 	}
 }
 
-func BenchmarkAsyncPromise3(b *testing.B) {
+func BenchmarkAsyncPromiseSync(b *testing.B) {
 	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromise3(ctx, data, handler, c)
+			AsyncPromiseSync(ctx, data, handler, c)
 		}
 	}
 }

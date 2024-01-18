@@ -1,7 +1,11 @@
 package async
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
+// save the resulting array after canceling/error: NO/NO
 // throws "context canceled" if an error occurs before/after cancellation: NO/NO
 // instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
 func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
@@ -16,55 +20,57 @@ func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(A) (V
 	promises := make([]chan V, len(args))
 
 	traffic := make(chan struct{}, concurrency-1)
-	catch := make(chan error, concurrency)
 
-LOOP:
+	catch := make(chan error)
+
+	var once sync.Once
+	var err error
+
 	for i, arg := range args {
 		i, arg := i, arg
-		select {
-		case <-ctx.Done():
-			promises = promises[0:i]
-			printDebug("SKIP %v", len(promises))
-			break LOOP
-		default:
-		}
 		promises[i] = Pipeline(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
-			value, err := f(arg)
-			if err != nil {
-				catch <- err
-				cancel()
+			value, e := f(arg)
+			if e != nil {
+				once.Do(func() {
+					err = e
+					close(catch)
+				})
 			}
-			printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
+			defer printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, e)
 			<-traffic
 			return value
 		})
 		printDebug("promises[%v] = p", i)
-		traffic <- struct{}{}
+		var breaker bool
+		select {
+		case <-catch:
+			breaker = true
+		case <-ctx.Done():
+			breaker = true
+		case traffic <- struct{}{}:
+		}
+		if breaker {
+			promises = promises[0 : i+1]
+			printDebug("SKIP %v", len(promises))
+			break
+		}
 	}
-	printDebug("LOOP END")
+	printDebug("LOOP END %v", len(promises))
 	printDebug("close(traffic) %v", len(traffic))
 	close(traffic)
 
 	res := make([]V, len(args))
 	for i, p := range promises {
-		msg := <-p
-		printDebug("fill %v %v %v", i, p, msg)
-		res[i] = msg
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-catch:
+			return nil, err
+		case msg := <-p:
+			printDebug("fill %v %v %v", i, p, msg)
+			res[i] = msg
+		}
 	}
-
-	close(catch)
-
-	err, ok := <-catch
-	printDebug("err, ok := %v, %v", err, ok)
-	if err != nil {
-		return res, err
-	}
-
-	select {
-	case <-ctx.Done():
-		return res, ctx.Err()
-	default:
-		return res, nil
-	}
+	return res, nil
 }

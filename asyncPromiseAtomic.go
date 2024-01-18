@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 )
 
+// save the resulting array after canceling/error: NO/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
 // instant cancellation (does not wait for parallel jobs when an error occurs or canceled): YES
 func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
@@ -90,13 +91,13 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(A) (
 		case <-ctx.Done():
 			printDebug("<-ctx.Done():")
 			atomic.CompareAndSwapInt32(&stop, 0, 1)
-			return nil, ctx.Err()
+			return res, ctx.Err()
 		case m, ok := <-output:
 			if !ok {
 				return res, nil
 			}
 			if m.error != nil {
-				return nil, m.error
+				return res, m.error
 			}
 			res[m.Index] = m.Value
 			printDebug("<- promises[%v] %v", m.Index, res)

@@ -2,10 +2,12 @@ package async
 
 import (
 	"context"
+	"sync"
 )
 
+// save the resulting array after canceling/error: NO/NO
 // throws "context canceled" if an error occurs before/after cancellation: NO/NO
-// does not wait for parallel jobs when an error occurs or canceled: NO
+// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
 func AsyncPromise22[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -19,29 +21,42 @@ func AsyncPromise22[A any, V any](ctx context.Context, args []A, f func(A) (V, e
 
 	traffic := make(chan struct{}, concurrency-1)
 
-LOOP:
+	catch := make(chan error)
+
+	var once sync.Once
+	var err error
+
 	for i, arg := range args {
 		i, arg := i, arg
 		promises[i] = Pipeline(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
-			value, err := f(arg)
-			if err != nil {
-				cancel()
+			value, e := f(arg)
+			if e != nil {
+				once.Do(func() {
+					err = e
+					close(catch)
+				})
 			}
-			printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
+			defer printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, e)
 			<-traffic
 			return value
 		})
 		printDebug("promises[%v] = p", i)
+		var breaker bool
 		select {
+		case <-catch:
+			breaker = true
 		case <-ctx.Done():
-			promises = promises[0:i]
-			printDebug("SKIP %v", len(promises))
-			break LOOP
+			breaker = true
 		case traffic <- struct{}{}:
 		}
+		if breaker {
+			promises = promises[0 : i+1]
+			printDebug("SKIP %v", len(promises))
+			break
+		}
 	}
-	printDebug("LOOP END")
+	printDebug("LOOP END %v", len(promises))
 	printDebug("close(traffic) %v", len(traffic))
 	close(traffic)
 
@@ -49,12 +64,13 @@ LOOP:
 	for i, p := range promises {
 		select {
 		case <-ctx.Done():
-			return res, ctx.Err()
+			return nil, ctx.Err()
+		case <-catch:
+			return nil, err
 		case msg := <-p:
 			printDebug("fill %v %v %v", i, p, msg)
 			res[i] = msg
 		}
 	}
-
 	return res, nil
 }

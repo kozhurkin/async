@@ -6,8 +6,9 @@ import (
 	"sync"
 )
 
+// can save the resulting array after canceling/error: YES/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// does not wait for parallel jobs when an error occurs or canceled: YES
+// instant termination on cancelation/error: SOSO/YES
 func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -87,10 +88,10 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(A) (V, err
 	for m := range out {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return result, ctx.Err()
 		default:
 			if m.error != nil {
-				return nil, m.error
+				return result, m.error
 			}
 			result[m.Index] = m.Value
 		}

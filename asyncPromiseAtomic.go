@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 )
 
-// save the resulting array after canceling/error: NO/YES
+// save the resulting array after canceling/error: SOSO/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): YES
+// instant termination on cancelation/error: YES/YES
 func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -70,7 +70,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(A) (
 
 		wg.Add(len(promises))
 		for i, p := range promises {
-			printDebug("output %v %v", i, p)
+			printDebug("pipe %v %v", i, p)
 			i, p := i, p
 			go func() { // need when error exist in tail unfulfilled promises
 				output <- <-p

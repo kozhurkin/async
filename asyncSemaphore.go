@@ -7,7 +7,7 @@ import (
 
 // can save the resulting array after canceling/error: YES/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): YES
+// instant termination on cancelation/error: YES/YES
 func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)

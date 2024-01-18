@@ -37,7 +37,7 @@ func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(A) (V
 					close(catch)
 				})
 			}
-			defer printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, e)
+			printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, e)
 			<-traffic
 			return value
 		})

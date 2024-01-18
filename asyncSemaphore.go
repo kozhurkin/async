@@ -2,10 +2,12 @@ package async
 
 import (
 	"context"
-	"runtime"
 	"sync"
 )
 
+// can save the resulting array after canceling/error: YES/YES
+// throws "context canceled" if an error occurs before/after cancellation: YES/YES
+// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): YES
 func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -17,7 +19,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 		Index int
 		Value V
 		error
-	})
+	}, concurrency) // size=concurrency to prevent blocking of the input channel
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -31,7 +33,6 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 			select {
 			case <-ctx.Done():
 				printDebug("SKIP %v", arg)
-				// TODO break OUT?
 				break LOOP
 			default:
 			}
@@ -48,16 +49,11 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 				}{i, value, err}
 				printDebug(" - wg.Done(%v)", arg)
 				wg.Done()
-				// switch goroutine to handle error and exit before next iteration
-				// it works without it, but it saves you from unnecessarily running the task
-				if err != nil {
-					runtime.Gosched()
-				}
 				<-traffic
 			}(i, arg)
 			traffic <- struct{}{}
 		}
-		printDebug("LOOP INPUT DONE")
+		printDebug("-------- END INPUT LOOP")
 		printDebug("traffic channel closed (tail %v)", len(traffic))
 		close(traffic)
 
@@ -78,7 +74,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 			res[msg.Index] = msg.Value
 			printDebug("%v", res)
 		}
-		printDebug("LOOP OUTPUT DONE")
+		printDebug("-------- END OUTPUT LOOD %v", err)
 		end <- err
 		close(end)
 	}()

@@ -1,34 +1,19 @@
-package async
+package tests
 
 import (
 	"context"
 	"errors"
+	"github.com/kozhurkin/async"
 	"math/rand"
-	"runtime"
 	"testing"
 	"time"
 )
 
-func TestPipeline(t *testing.T) {
-	ts := time.Now()
-	pa := Pipeline(func() int { <-time.After(1 * time.Second); return 1 })
-	pb := Pipeline(func() int { <-time.After(2 * time.Second); return 2 })
-	a, b := <-pa, <-pb
-	delta := int(time.Now().Sub(ts).Seconds())
-	if delta != 2 {
-		t.Fatal("Should complete in 2 seconds")
-	}
-	if a != 1 || b != 2 {
-		t.Fatal("Wrong return values")
-	}
-	return
-}
-
 var data = []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
-var handler = func(k int) (int, error) {
+var handler = func(i int, k int) (int, error) {
 	rnd := rand.Intn(10000)
-	runtime.Gosched()
-	//<-time.After(time.Duration(rnd) * time.Nanosecond)
+	//runtime.Gosched()
+	<-time.After(time.Duration(rnd) * time.Nanosecond)
 	if rand.Intn(len(data)) == 0 {
 		return rnd, errors.New("unknown error")
 	}
@@ -40,7 +25,7 @@ func BenchmarkAsyncPromise22(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromise22(ctx, data, handler, c)
+			async.AsyncPromise22(ctx, data, handler, c)
 		}
 	}
 }
@@ -50,7 +35,7 @@ func BenchmarkAsyncSemaphore(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncSemaphore(ctx, data, handler, c)
+			async.AsyncSemaphore(ctx, data, handler, c)
 		}
 	}
 }
@@ -60,7 +45,7 @@ func BenchmarkAsyncPromiseAtomic(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromiseAtomic(ctx, data, handler, c)
+			async.AsyncPromiseAtomic(ctx, data, handler, c)
 		}
 	}
 }
@@ -70,7 +55,7 @@ func BenchmarkAsyncPromiseCatch(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromiseCatch(ctx, data, handler, c)
+			async.AsyncPromiseCatch(ctx, data, handler, c)
 		}
 	}
 }
@@ -80,7 +65,7 @@ func BenchmarkAsyncPromiseSync(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncPromiseSync(ctx, data, handler, c)
+			async.AsyncPromiseSync(ctx, data, handler, c)
 		}
 	}
 }
@@ -90,7 +75,7 @@ func BenchmarkAsyncWorkers(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncWorkers(ctx, data, handler, c)
+			async.AsyncWorkers(ctx, data, handler, c)
 		}
 	}
 }
@@ -100,7 +85,7 @@ func BenchmarkAsyncErrgroup(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			AsyncErrgroup(ctx, data, handler, c)
+			async.AsyncErrgroup(ctx, data, handler, c)
 		}
 	}
 }

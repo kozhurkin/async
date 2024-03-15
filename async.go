@@ -54,7 +54,7 @@ func Promise[R any, C chan R, E chan error, F func() (C, E)](f func() (R, error)
 	return res
 }
 
-func AsyncToMap[A comparable, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) (map[A]V, error) {
+func AsyncToMap[A comparable, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) (map[A]V, error) {
 	arr, err := AsyncToArray(ctx, args, f, concurrency)
 	if err != nil {
 		return nil, err
@@ -66,6 +66,6 @@ func AsyncToMap[A comparable, V any](ctx context.Context, args []A, f func(A) (V
 	return res, nil
 }
 
-func AsyncToArray[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
-	return AsyncWorkers(ctx, args, f, concurrency)
+func AsyncToArray[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+	return AsyncSemaphore(ctx, args, f, concurrency)
 }

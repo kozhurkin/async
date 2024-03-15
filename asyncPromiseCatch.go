@@ -8,7 +8,7 @@ import (
 // save the resulting array after canceling/error: NO/NO
 // throws "context canceled" if an error occurs before/after cancellation: NO/NO
 // instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
-func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -30,7 +30,7 @@ func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(A) (V
 		i, arg := i, arg
 		promises[i] = Pipeline(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
-			value, e := f(arg)
+			value, e := f(i, arg)
 			if e != nil {
 				once.Do(func() {
 					err = e

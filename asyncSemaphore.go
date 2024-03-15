@@ -8,7 +8,7 @@ import (
 // can save the resulting array after canceling/error: YES/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
 // instant termination on cancelation/error: YES/YES
-func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V, error), concurrency int) ([]V, error) {
+func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -28,19 +28,27 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 	res := make([]V, len(args))
 
 	go func() {
-	LOOP:
+		defer func() {
+			printDebug("-------- END INPUT LOOP")
+			printDebug("traffic channel closed (tail %v)", len(traffic))
+			close(traffic)
+			printDebug("wg.Wait()")
+			wg.Wait()
+			printDebug("output channel closed (tail %v)", len(output))
+			close(output)
+		}()
 		for i, arg := range args {
 			select {
 			case <-ctx.Done():
 				printDebug("SKIP %v", arg)
-				break LOOP
+				return
 			default:
 			}
 			wg.Add(1)
 			printDebug(" + wg.Add(%v)", arg)
 			go func(i int, arg A) {
 				printDebug("go func(%v)", arg)
-				value, err := f(arg)
+				value, err := f(i, arg)
 				printDebug("CHAN <- struct {%v, %v, %v}", i, value, err)
 				output <- struct {
 					Index int
@@ -53,18 +61,15 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 			}(i, arg)
 			traffic <- struct{}{}
 		}
-		printDebug("-------- END INPUT LOOP")
-		printDebug("traffic channel closed (tail %v)", len(traffic))
-		close(traffic)
-
-		printDebug("wg.Wait()")
-		wg.Wait()
-		printDebug("output channel closed (tail %v)", len(output))
-		close(output)
 	}()
 
 	go func() {
 		var err error
+		defer func() {
+			printDebug("-------- END OUTPUT LOOD %v", err)
+			end <- err
+			close(end)
+		}()
 		for msg := range output {
 			printDebug("CHAN msg := struct {%v, %v, %v}", msg.Index, msg.Value, msg.error)
 			if msg.error != nil {
@@ -72,21 +77,19 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(k A) (V,
 				break
 			}
 			res[msg.Index] = msg.Value
-			printDebug("%v", res)
+			printDebug("_____%v %v %v %v %v", res, msg.Index, msg.Value, msg.error)
 		}
-		printDebug("-------- END OUTPUT LOOD %v", err)
-		end <- err
-		close(end)
 	}()
 
 	select {
 	case err, ok := <-end:
 		printDebug("err, ok := %v, %v", err, ok)
 		if err != nil {
-			return nil, err
+			return res, err
 		}
 		return res, nil
 	case <-ctx.Done():
+		// cant return "res" because of DATA RACE
 		return nil, ctx.Err()
 	}
 }

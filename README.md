@@ -28,7 +28,7 @@ Usage
     
     // concurrency = 2 means that no more than 2 tasks can be performed at a time
     concurrency := 2
-    responses, err := async.AsyncToArray(ctx, urls, func(url string) (string, error) {
+    responses, err := async.AsyncToArray(ctx, urls, func(i int, url string) (string, error) {
         resp, err := http.Get(url)
         if err != nil {
             return nil, err
@@ -59,7 +59,7 @@ Usage
     
     // concurrency = 0 means that all tasks will be executed at the same time
     concurrency := 0
-    responses, err := async.AsyncToArray(ctx, videos, func(vid string) (int, error) {
+    responses, err := async.AsyncToArray(ctx, videos, func(i int, vid string) (int, error) {
         views, err := youtube.GetViews(vid)
         if err != nil {
             return nil, err

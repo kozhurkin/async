@@ -7,7 +7,7 @@ import (
 
 // throws "context canceled" if an error occurs before/after cancellation: NO/NO
 // instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
-func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(A) (V, error), concurrency int) ([]V, error) {
+func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -39,7 +39,7 @@ func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(A) (V, er
 			}
 			wg.Go(func() error {
 				printDebug("wg.Go %v", arg)
-				value, err := f(arg)
+				value, err := f(index, arg)
 				printDebug("done: %v %v %v", arg, value, err)
 				if err != nil {
 					cancel()

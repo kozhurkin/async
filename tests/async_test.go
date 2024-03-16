@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kozhurkin/async"
 	"testing"
 	"time"
@@ -20,6 +21,25 @@ func TestPipeline(t *testing.T) {
 	if a != 1 || b != 2 {
 		t.Fatal("Wrong return values")
 	}
+	return
+}
+func TestPipelineReducer(t *testing.T) {
+	ts := time.Now()
+	res := async.PipelineReducer([]chan int{
+		async.Pipeline(func() int { <-time.After(1 * time.Second); return 1 }),
+		async.Pipeline(func() int { <-time.After(2 * time.Second); return 2 }),
+	})
+	fmt.Println(res, time.Since(ts))
+	return
+}
+
+func TestPipelineErr(t *testing.T) {
+	ts := time.Now()
+	res, err := async.PipelineErrReducer([]async.PipErr[int]{
+		async.PipelineErr(func() (int, error) { <-time.After(1 * time.Second); return 1, nil }),
+		async.PipelineErr(func() (int, error) { <-time.After(2 * time.Second); return 2, nil }),
+	})
+	fmt.Println(res, err, time.Since(ts))
 	return
 }
 

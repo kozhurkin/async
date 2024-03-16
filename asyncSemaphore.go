@@ -98,9 +98,5 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 			return res, err
 		}
 		return res, nil
-		//case <-ctx.Done():
-		//	// cant return "res" because of DATA RACE
-		//	return nil, ctx.Err()
-
 	}
 }

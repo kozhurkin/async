@@ -24,9 +24,10 @@ func TestPipeline(t *testing.T) {
 }
 
 var throw = errors.New("throw error")
+var throw2 = errors.New("throw error (2)")
 var tasks = Tasks{
 	{
-		Desc: "Example of success launch                   ",
+		Desc: "Example of success launch        ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50 * time.Millisecond, nil},
@@ -41,7 +42,7 @@ var tasks = Tasks{
 		ExpectedError:  nil,
 	},
 	{
-		Desc: "Can save the resulting array after canceling",
+		Desc: "Cancel context before throw      ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50 * time.Millisecond, nil},
@@ -56,7 +57,7 @@ var tasks = Tasks{
 		ExpectedError:  context.DeadlineExceeded,
 	},
 	{
-		Desc: "Can save the resulting array after error    ",
+		Desc: "Throw 1 error simple             ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50 * time.Millisecond, nil},
@@ -71,7 +72,7 @@ var tasks = Tasks{
 		ExpectedError:  throw,
 	},
 	{
-		Desc: "Throw an error before canceling             ",
+		Desc: "Throw 1 error before canceling   ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50 * time.Millisecond, nil},
@@ -85,6 +86,21 @@ var tasks = Tasks{
 		ExpectedResult: Result{1, 0, 9, 0, 0},
 		ExpectedError:  throw,
 	},
+	{
+		Desc: "Throw 2 errors after each other  ",
+		Args: [5]int{1, 2, 3, 4, 5},
+		ProcessInfo: ProcessInfo{
+			{50 * time.Millisecond, nil},
+			{100 * time.Millisecond, throw},
+			{30 * time.Millisecond, throw2},
+			{40 * time.Millisecond, nil},
+			{25 * time.Millisecond, nil},
+		},
+		Concurrency:    2,
+		CancelAfter:    0,
+		ExpectedResult: Result{1, 0, 0, 0, 0},
+		ExpectedError:  throw2,
+	},
 }
 
 func TestAsyncSemaphore(t *testing.T) {
@@ -92,7 +108,18 @@ func TestAsyncSemaphore(t *testing.T) {
 	Launcher{t, tasks, async.AsyncSemaphore[int, int]}.Run()
 }
 
+func TestAsyncWorkers(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncWorkers[int, int]}.Run()
+}
+
+func TestAsyncErrgroup(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.Run()
+}
+
 func TestAsyncPromiseCatch(t *testing.T) {
+	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncPromiseCatch[int, int]}.Run()
 }
 
@@ -106,12 +133,4 @@ func TestAsyncPromiseSync(t *testing.T) {
 
 func TestAsyncPromisePipes(t *testing.T) {
 	Launcher{t, tasks, async.AsyncPromisePipes[int, int]}.Run()
-}
-
-func TestAsyncWorkers(t *testing.T) {
-	Launcher{t, tasks, async.AsyncWorkers[int, int]}.Run()
-}
-
-func TestAsyncErrgroup(t *testing.T) {
-	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.Run()
 }

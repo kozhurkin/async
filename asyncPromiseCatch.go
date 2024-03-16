@@ -64,9 +64,9 @@ func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(int, 
 	for i, p := range promises {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return res, ctx.Err()
 		case <-catch:
-			return nil, err
+			return res, err
 		case msg := <-p:
 			printDebug("fill %v %v %v", i, p, msg)
 			res[i] = msg

@@ -2,13 +2,12 @@ package async
 
 import (
 	"context"
-	"runtime"
 	"sync"
 )
 
 // can save the resulting array after canceling/error: YES/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// instant termination on cancelation/error: SOSO/YES
+// instant termination on cancelation/error: YES/YES
 func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -35,23 +34,19 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V
 			select {
 			case <-ctx.Done():
 				return
-			default:
-				// switch goroutine to check if context canceled before the job
-				// it works without it, but it saves you from unnecessarily running the task
-				runtime.Gosched()
+			case input, ok := <-in:
+				if !ok {
+					return
+				}
+				printDebug("f(input.Arg) %v", input)
+				value, err := f(input.Index, input.Arg)
+				printDebug("worker %v done, res[%v] = f(%v) = %v, err = %v", w+1, input.Index, input.Arg, value, err)
+				out <- struct {
+					Index int
+					Value V
+					error
+				}{input.Index, value, err}
 			}
-			input, ok := <-in
-			if !ok {
-				return
-			}
-			printDebug("f(input.Arg) %v", input)
-			value, err := f(input.Index, input.Arg)
-			printDebug("worker %v done, res[%v] = f(%v) = %v, err = %v", w+1, input.Index, input.Arg, value, err)
-			out <- struct {
-				Index int
-				Value V
-				error
-			}{input.Index, value, err}
 		}
 	}
 
@@ -62,20 +57,22 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V
 	printDebug("%v workers created", concurrency)
 
 	go func() {
-	OUT:
+		defer func() {
+			close(in)
+			printDebug("input channel closed")
+		}()
 		for i, arg := range args {
 			select {
 			case <-ctx.Done():
 				printDebug("skipping input")
-				break OUT
+				return
 			case in <- struct {
 				Index int
 				Arg   A
 			}{i, arg}:
 			}
 		}
-		close(in)
-		printDebug("input channel closed")
+
 	}()
 
 	go func() {
@@ -85,17 +82,18 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V
 	}()
 
 	result := make([]V, len(args))
-	for m := range out {
+	for {
 		select {
 		case <-ctx.Done():
 			return result, ctx.Err()
-		default:
+		case m, ok := <-out:
+			if !ok {
+				return result, nil
+			}
 			if m.error != nil {
 				return result, m.error
 			}
 			result[m.Index] = m.Value
 		}
 	}
-
-	return result, nil
 }

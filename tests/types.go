@@ -60,13 +60,13 @@ func (l Launcher) Run() *Launcher {
 			//assert.Equal(l.T, task.ExpectedResult, result5)
 
 			l.T.Log(fmt.Sprintf(
-				"%v :  c=%v \t %v \t %v %v, \t\t %v (%v)",
+				"%v :  c=%v \t %v \t %v %v, \t %v (%v)",
 				task.Desc,
 				expect.Concurrency,
 				time.Since(ts).Milliseconds(),
-				expect.Result.IsEqual(result),
+				formatBool(expect.Result.IsEqual(result)),
 				result,
-				errors.Is(err, expect.Error),
+				formatBool(errors.Is(err, expect.Error)),
 				err,
 			))
 		}
@@ -88,4 +88,14 @@ func (r Result) IsEqual(m []int) bool {
 		}
 	}
 	return true
+}
+
+func formatBool(b bool) string {
+	if b {
+		//return "✔"
+		return "✅"
+	} else {
+		//return "✖"
+		return "❌"
+	}
 }

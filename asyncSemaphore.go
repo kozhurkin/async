@@ -13,7 +13,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 		concurrency = len(args)
 	}
 	printDebug("CONCURRENCY: %v", concurrency)
-	end := make(chan error)
+	complete := make(chan error)
 	traffic := make(chan struct{}, concurrency-1)
 	output := make(chan struct {
 		Index int
@@ -40,7 +40,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 		for i, arg := range args {
 			select {
 			case <-ctx.Done():
-				printDebug("SKIP %v", arg)
+				printDebug("SKIP INPUT %v", arg)
 				return
 			default:
 			}
@@ -67,29 +67,40 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 		var err error
 		defer func() {
 			printDebug("-------- END OUTPUT LOOD %v", err)
-			end <- err
-			close(end)
+			complete <- err
+			close(complete)
 		}()
-		for msg := range output {
-			printDebug("CHAN msg := struct {%v, %v, %v}", msg.Index, msg.Value, msg.error)
-			if msg.error != nil {
-				err = msg.error
-				break
+		for {
+			select {
+			case <-ctx.Done():
+				printDebug("SKIP OUTPUT %v")
+				err = ctx.Err()
+				return
+			case msg, ok := <-output:
+				printDebug("CHAN msg := struct {%v, %v, %v, %v}", msg.Index, msg.Value, msg.error, ok)
+				if !ok {
+					return
+				}
+				if msg.error != nil {
+					err = msg.error
+					return
+				}
+				res[msg.Index] = msg.Value
+				printDebug("_____%v %v %v %v %v", res, msg.Index, msg.Value, msg.error)
 			}
-			res[msg.Index] = msg.Value
-			printDebug("_____%v %v %v %v %v", res, msg.Index, msg.Value, msg.error)
 		}
 	}()
 
 	select {
-	case err, ok := <-end:
+	case err, ok := <-complete:
 		printDebug("err, ok := %v, %v", err, ok)
 		if err != nil {
 			return res, err
 		}
 		return res, nil
-	case <-ctx.Done():
-		// cant return "res" because of DATA RACE
-		return nil, ctx.Err()
+		//case <-ctx.Done():
+		//	// cant return "res" because of DATA RACE
+		//	return nil, ctx.Err()
+
 	}
 }

@@ -14,14 +14,12 @@ type ProcessInfo [5]struct {
 }
 
 type Tasks []struct {
-	Desc   string
-	Args   [5]int
-	Delays [5]time.Duration
-	Errors [5]error
+	Desc string
+	Args [5]int
 	ProcessInfo
 	Concurrency    int
 	CancelAfter    time.Duration
-	ExpectedResult [5]int
+	ExpectedResult Result
 	ExpectedError  error
 }
 
@@ -51,10 +49,6 @@ func (l Launcher) Run() {
 		}, task.Concurrency)
 
 		//l.T.Log(result, err)
-
-		var result5 [5]int
-		copy(result5[:], result)
-
 		//assert.Equalf(l.T, task.ExpectedError, err, "__")
 		//assert.Equal(l.T, task.ExpectedResult, result5)
 
@@ -62,10 +56,25 @@ func (l Launcher) Run() {
 			"%v :  %v \t %v %v, \t\t %v (%v)",
 			task.Desc,
 			time.Since(ts).Milliseconds(),
-			result5 == task.ExpectedResult,
+			task.ExpectedResult.IsEqual(result),
 			result,
 			errors.Is(err, task.ExpectedError),
 			err,
 		))
 	}
+}
+
+type Result [5]int
+
+func (r Result) IsEqual(m []int) bool {
+	//fmt.Println(r.String(), Result(m).String())
+	if len(r) != len(m) {
+		return false
+	}
+	for i, _ := range r {
+		if r[i] != m[i] {
+			return false
+		}
+	}
+	return true
 }

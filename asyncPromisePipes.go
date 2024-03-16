@@ -2,9 +2,7 @@ package async
 
 import "context"
 
-// throws "context canceled" if an error occurs before/after cancellation: NO/NO
-// instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
-func AsyncPromise22[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromisePipes[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}

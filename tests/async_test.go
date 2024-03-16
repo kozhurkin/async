@@ -37,7 +37,7 @@ var tasks = Tasks{
 		},
 		Concurrency:    2,
 		CancelAfter:    0,
-		ExpectedResult: [5]int{1, 4, 9, 16, 25},
+		ExpectedResult: Result{1, 4, 9, 16, 25},
 		ExpectedError:  nil,
 	},
 	{
@@ -52,7 +52,7 @@ var tasks = Tasks{
 		},
 		Concurrency:    2,
 		CancelAfter:    90 * time.Millisecond,
-		ExpectedResult: [5]int{1, 0, 9, 0, 0},
+		ExpectedResult: Result{1, 0, 9, 0, 0},
 		ExpectedError:  context.DeadlineExceeded,
 	},
 	{
@@ -67,7 +67,7 @@ var tasks = Tasks{
 		},
 		Concurrency:    2,
 		CancelAfter:    0,
-		ExpectedResult: [5]int{1, 0, 9, 0, 0},
+		ExpectedResult: Result{1, 0, 9, 0, 0},
 		ExpectedError:  throw,
 	},
 	{
@@ -82,7 +82,7 @@ var tasks = Tasks{
 		},
 		Concurrency:    2,
 		CancelAfter:    110 * time.Millisecond,
-		ExpectedResult: [5]int{1, 0, 9, 0, 0},
+		ExpectedResult: Result{1, 0, 9, 0, 0},
 		ExpectedError:  throw,
 	},
 }
@@ -102,6 +102,10 @@ func TestAsyncPromiseAtomic(t *testing.T) {
 
 func TestAsyncPromiseSync(t *testing.T) {
 	Launcher{t, tasks, async.AsyncPromiseSync[int, int]}.Run()
+}
+
+func TestAsyncPromisePipes(t *testing.T) {
+	Launcher{t, tasks, async.AsyncPromisePipes[int, int]}.Run()
 }
 
 func TestAsyncWorkers(t *testing.T) {

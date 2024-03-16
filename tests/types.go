@@ -13,14 +13,19 @@ type ProcessInfo [5]struct {
 	Err   error
 }
 
+type Expectations []struct {
+	Concurrency int
+	Result
+	Error error
+	//time.Duration
+}
+
 type Tasks []struct {
 	Desc string
 	Args [5]int
 	ProcessInfo
-	Concurrency    int
-	CancelAfter    time.Duration
-	ExpectedResult Result
-	ExpectedError  error
+	CancelAfter time.Duration
+	Expectations
 }
 
 type Launcher struct {
@@ -33,7 +38,7 @@ func (l Launcher) Run() *Launcher {
 	for _, task := range l.Tasks {
 		task := task
 		//for _, c := range []int{task.Concurrency} {
-		for _, c := range []int{1, task.Concurrency, len(task.Args) + 1} {
+		for _, expect := range task.Expectations {
 			ctx := context.Background()
 			if task.CancelAfter != 0 {
 				var cancel context.CancelFunc
@@ -48,7 +53,7 @@ func (l Launcher) Run() *Launcher {
 					return 0, pi.Err
 				}
 				return arg * arg, nil
-			}, c)
+			}, expect.Concurrency)
 
 			//l.T.Log(result, err)
 			//assert.Equalf(l.T, task.ExpectedError, err, "__")
@@ -57,11 +62,11 @@ func (l Launcher) Run() *Launcher {
 			l.T.Log(fmt.Sprintf(
 				"%v :  c=%v \t %v \t %v %v, \t\t %v (%v)",
 				task.Desc,
-				c,
+				expect.Concurrency,
 				time.Since(ts).Milliseconds(),
-				task.ExpectedResult.IsEqual(result),
+				expect.Result.IsEqual(result),
 				result,
-				errors.Is(err, task.ExpectedError),
+				errors.Is(err, expect.Error),
 				err,
 			))
 		}

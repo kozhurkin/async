@@ -21,72 +21,40 @@ var handler = func(i int, k int) (int, error) {
 	return rnd, nil
 }
 
-func BenchmarkAsyncSemaphore(b *testing.B) {
+func launcher(b *testing.B, asyncFunc func(context.Context, []int, func(int, int) (int, error), int) ([]int, error)) {
 	ctx := context.Background()
 	rand.Seed(time.Now().UnixNano())
 	for c := 0; c <= len(data); c++ {
 		for i := 1; i <= b.N; i++ {
-			async.AsyncSemaphore(ctx, data, handler, c)
+			asyncFunc(ctx, data, handler, c)
 		}
 	}
+}
+
+func BenchmarkAsyncSemaphore(b *testing.B) {
+	launcher(b, async.AsyncSemaphore[int, int])
 }
 
 func BenchmarkAsyncWorkers(b *testing.B) {
-	ctx := context.Background()
-	rand.Seed(time.Now().UnixNano())
-	for c := 0; c <= len(data); c++ {
-		for i := 1; i <= b.N; i++ {
-			async.AsyncWorkers(ctx, data, handler, c)
-		}
-	}
+	launcher(b, async.AsyncWorkers[int, int])
 }
 
 func BenchmarkAsyncErrgroup(b *testing.B) {
-	ctx := context.Background()
-	rand.Seed(time.Now().UnixNano())
-	for c := 0; c <= len(data); c++ {
-		for i := 1; i <= b.N; i++ {
-			async.AsyncErrgroup(ctx, data, handler, c)
-		}
-	}
-}
-
-func BenchmarkAsyncPromiseAtomic(b *testing.B) {
-	ctx := context.Background()
-	rand.Seed(time.Now().UnixNano())
-	for c := 0; c <= len(data); c++ {
-		for i := 1; i <= b.N; i++ {
-			async.AsyncPromiseAtomic(ctx, data, handler, c)
-		}
-	}
+	launcher(b, async.AsyncErrgroup[int, int])
 }
 
 func BenchmarkAsyncPromiseCatch(b *testing.B) {
-	ctx := context.Background()
-	rand.Seed(time.Now().UnixNano())
-	for c := 0; c <= len(data); c++ {
-		for i := 1; i <= b.N; i++ {
-			async.AsyncPromiseCatch(ctx, data, handler, c)
-		}
-	}
+	launcher(b, async.AsyncPromiseCatch[int, int])
+}
+
+func BenchmarkAsyncPromiseAtomic(b *testing.B) {
+	launcher(b, async.AsyncPromiseAtomic[int, int])
 }
 
 func BenchmarkAsyncPromiseSync(b *testing.B) {
-	ctx := context.Background()
-	rand.Seed(time.Now().UnixNano())
-	for c := 0; c <= len(data); c++ {
-		for i := 1; i <= b.N; i++ {
-			async.AsyncPromiseSync(ctx, data, handler, c)
-		}
-	}
+	launcher(b, async.AsyncPromiseSync[int, int])
 }
 
 func BenchmarkAsyncPromisePipes(b *testing.B) {
-	ctx := context.Background()
-	rand.Seed(time.Now().UnixNano())
-	for c := 0; c <= len(data); c++ {
-		for i := 1; i <= b.N; i++ {
-			async.AsyncPromisePipes(ctx, data, handler, c)
-		}
-	}
+	launcher(b, async.AsyncPromisePipes[int, int])
 }

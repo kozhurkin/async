@@ -7,62 +7,11 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 )
 
 func main() {
 
-	wp := GetWorkerPool(5)
-
-	for i := 1; i <= 20; i++ {
-		job := Job{ID: i}
-		wp.AddJob(job)
-	}
-
-	wp.Wait()
-	return
-	//
-	//t := time.Now()
-	//fmt.Println("start")
-	//
-	//p2 := async.Promise(func() (int, error) {
-	//	<-time.After(2 * time.Second)
-	//	return 2, nil
-	//})
-	//p2.Start()
-	//
-	//p3 := async.Promise(func() (int, error) {
-	//	<-time.After(3 * time.Second)
-	//	return 3, nil
-	//})
-	//p3.Start()
-	//
-	//r2, r3 := <-p2.Out, <-p3.Out
-	//
-	//fmt.Println("___", r2, r3, time.Now().Sub(t).Seconds())
-
-	//fmt.Println("go")
-	//wg := new(errgroup.Group)
-	//
-	//wg.Go(func() (err error) {
-	//	<-time.After(5 * time.Second)
-	//	return errors.New("test")
-	//})
-	//wg.Go(func() (err error) {
-	//	return errors.New("test")
-	//})
-	//err := wg.Wait()
-	//fmt.Println(err)
-	//return
-	//fmt.Println(time.Now())
-	//pa := async.Pipeline(func() time.Time { return <-time.After(2 * time.Second) })
-	//pb := async.Pipeline(func() time.Time { return <-time.After(3 * time.Second) })
-	//a, b := <-pa, <-pb
-	//fmt.Println(time.Now(), []time.Time{a, b})
-	//a2, b2 := <-pa, <-pb
-	//fmt.Println(time.Now(), []time.Time{a2, b2})
-	//return
 	rand.Seed(time.Now().UnixNano())
 	async.SetDebug(1)
 
@@ -102,99 +51,4 @@ OUT:
 		}
 	}
 	<-time.After(1 * time.Second)
-}
-
-var once sync.Once
-
-func GetWorkerPool(maxWorkers int) (singleton *WorkerPool) {
-	once.Do(func() {
-		workers := make([]*Worker, maxWorkers)
-		workerPool := make(chan chan Job, maxWorkers)
-		jobQueue := make(chan Job, maxWorkers)
-
-		pool := &WorkerPool{
-			workers:    workers,
-			jobQueue:   jobQueue,
-			workerPool: workerPool,
-		}
-
-		for i := 0; i < maxWorkers; i++ {
-			worker := NewWorker(pool.workerPool, i)
-			worker.Start(&pool.wg)
-			workers[i] = worker
-		}
-
-		go pool.dispatch()
-
-		singleton = pool
-	})
-
-	return singleton
-}
-
-func (wp *WorkerPool) dispatch() {
-	for job := range wp.jobQueue {
-		fmt.Println("-- job =", job)
-		fmt.Println("--- wp.workerPool =", wp.workerPool)
-		workerJobQueue := <-wp.workerPool
-		fmt.Println("---- workerJobQueue =", workerJobQueue)
-		workerJobQueue <- job
-	}
-}
-
-func (wp *WorkerPool) AddJob(job Job) {
-	wp.wg.Add(1)
-	wp.jobQueue <- job
-}
-
-func (wp *WorkerPool) Wait() {
-	wp.wg.Wait()
-}
-
-type Job struct {
-	ID int
-}
-
-type Worker struct {
-	ID         int
-	WorkerPool chan chan Job
-	JobChannel chan Job
-	quit       chan bool
-}
-
-func NewWorker(workerPool chan chan Job, id int) *Worker {
-	return &Worker{
-		ID:         id,
-		WorkerPool: workerPool,
-		JobChannel: make(chan Job),
-		quit:       make(chan bool),
-	}
-}
-
-func (w *Worker) Start(wg *sync.WaitGroup) {
-	go func() {
-		for {
-			w.WorkerPool <- w.JobChannel
-			select {
-			case job := <-w.JobChannel:
-				fmt.Printf("Worker %d recv job %d\n", w.ID, job.ID)
-				wg.Done()
-			case <-w.quit:
-				return
-			}
-		}
-	}()
-}
-
-func (w *Worker) Stop() {
-	go func() {
-		w.quit <- true
-	}()
-}
-
-type WorkerPool struct {
-	workers    []*Worker
-	jobQueue   chan Job
-	workerPool chan chan Job
-	wg         sync.WaitGroup
 }

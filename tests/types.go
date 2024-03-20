@@ -65,7 +65,7 @@ func (l Launcher) Run() *Launcher {
 			diff := expect.Duration - duration
 
 			l.T.Log(fmt.Sprintf(
-				"%v :  c=%v \t %v %v \t %v %v, \t %v (%v)",
+				"%v :  c=%v      %v %v      %v %v      %v (%v)",
 				task.Desc,
 				expect.Concurrency,
 				formatBool(math.Abs(float64(diff)) < 5),

@@ -60,7 +60,7 @@ defer cancel()
 
 // concurrency = 0 means that all tasks will be executed at the same time
 concurrency := 0
-responses, err := async.AsyncToArray(ctx, videos, func(i int, vid string) (int, error) {
+responses, err := async.AsyncToMap(ctx, videos, func(i int, vid string) (int, error) {
     views, err := youtube.GetViews(vid)
     if err != nil {
         return nil, err
@@ -76,72 +76,77 @@ fmt.Println(responses)
 // map[XqZsoesa55w:11e9 kJQP7kiw5Fk:8e9 RgKAFK5djSk:5.7e9]
 ```
 #### NewPipers()
-```golang
-pp := async.NewPipers(
-    func() (interface{}, error) { return loadAds() },
-    func() (interface{}, error) { return loadUser(userId) },
-    func() (interface{}, error) { return loadPlatform(platformId) }, 
-)
+``` golang
+import github.com/kozhurkin/async/pipers
 
-err := pp.Run().FirstError()
+func main() {
 
-if err != nil {
-    panic(err)
+    pp := pipers.NewPipers(
+        func() (interface{}, error) { return loadAds() },
+        func() (interface{}, error) { return loadUser(userId) },
+        func() (interface{}, error) { return loadPlatform(platformId) },
+    )
+
+    err := pp.Run().FirstError()
+
+    if err != nil {
+        panic(err)
+    }
+
+    res := pp.Results()
+
+    ads := res[1].([]Ad)
+    user := res[2].(User)
+    platform := res[3].(Platform)
 }
-
-results := pp.Results()
-
-fmt.Println(err, results)
-// <nil> [[] 0xc000180008 0x10247db80]
-
-ads := res.Shift().([]Ad)
-user := res.Shift().(User)
-platform := res.Shift().(Platform)
-
-fmt.Println(ads, user, platform)
-// [] 0xc000180008 0x10247db80
 ```
 
-```golang
+``` golang
 // usage of helper .Ref() and method .Resolve() 
+import github.com/kozhurkin/async/pipers
 
-var ads []*Ad
-var user *User
-var platform *Platform
+func main() {
 
-pp := async.NewPipers(
-    async.Ref(&ads, func() ([]*Ad, error) {
-        return loadAds()
-    }),
-    async.Ref(&user, func() (*User, error) {
-        return loadUser(userId)
-    }),
-    async.Ref(&platform, func() (*Platform, error) {
-        return loadPlatform(platformId)
-    }),
-)
+    var ads []Ad
+    var user User
+    var platform Platform
 
-res, err := pp.Run().Resolve()
+    pp := async.NewPipers(
+        async.Ref(&ads, func() ([]Ad, error) {
+            return loadAds()
+        }),
+        async.Ref(&user, func() (User, error) {
+            return loadUser(userId)
+        }),
+        async.Ref(&platform, func() (Platform, error) {
+            return loadPlatform(platformId)
+        }),
+    )
 
-fmt.Println(res, err)
-// [[0xc00005e040] 0xc000114008 0xc000096740] <nil>
+    results, err := pp.Run().Resolve()
 
-fmt.Println(ads, user, platform)
-// [0xc00005e040] &{11051991} &{site.com}
-
+    fmt.Printf("results: %T\t%v\n", results, results) // results: []interface {} [[0xc000224010] 0xc0002a00f0 0xc000224020]
+    fmt.Printf("ads:     %T\t%v\n", ads, ads)         // ads:     []*tests.Ad    [0xc000224010]
+    fmt.Printf("user:    %T\t%v\n", user, user)       // user:    *tests.User    &{Dima}
+    fmt.Printf("site:    %T\t%v\n", site, site)       // site:    *tests.Site    &{site.com}
+}
 ```
 
 #### Pip()
 ``` golang
-ts := time.Now()
-pa := async.Pip(func() int {
-    <-time.After(2 * time.Second) // working 2 seconds
-    return 2024
-})
-pb := async.Pip(func() string {
-    <-time.After(3 * time.Second) // working 3 seconds
-    return "Happy New Year!"
-})
-a, b := <-pa, <-pb // parallel execution
-fmt.Println(time.Now().Sub(ts)) // execution time 3 seconds (not 5)
+import github.com/kozhurkin/async/pip
+
+func main() {
+    ts := time.Now()
+    pa := pip.NewPip(func() int {
+        <-time.After(2 * time.Second) // working 2 seconds
+        return 2024
+    })
+    pb := pip.NewPip(func() string {
+        <-time.After(3 * time.Second) // working 3 seconds
+        return "Happy New Year!"
+    })
+    a, b := <-pa, <-pb // parallel execution
+    fmt.Println(time.Now().Sub(ts)) // execution time 3 seconds (not 5)
+}
 ```

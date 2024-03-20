@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	"github.com/kozhurkin/async/pip"
 	"sync"
 )
 
@@ -28,7 +29,7 @@ func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(int, 
 
 	for i, arg := range args {
 		i, arg := i, arg
-		promises[i] = Pip(func() V {
+		promises[i] = pip.NewPip(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
 			value, e := f(i, arg)
 			if e != nil {

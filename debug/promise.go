@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/kozhurkin/async"
+	"github.com/kozhurkin/async/promise"
 	"golang.org/x/sync/errgroup"
 	"time"
 )
@@ -12,12 +12,12 @@ func main() {
 	ts := time.Now()
 	fmt.Println("start")
 
-	p2 := async.NewPromise(func() (int, error) {
+	p2 := promise.NewPromise(func() (int, error) {
 		<-time.After(2 * time.Second)
 		return 2, nil
 	})
 
-	p1 := async.NewPromise(func() (int, error) {
+	p1 := promise.NewPromise(func() (int, error) {
 		<-time.After(1 * time.Second)
 		return 1, nil
 	})

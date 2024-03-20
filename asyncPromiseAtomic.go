@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	"github.com/kozhurkin/async/pip"
 	"sync"
 	"sync/atomic"
 )
@@ -43,7 +44,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(int,
 				break
 			}
 			i, arg := i, arg
-			promises[i] = Pip(func() struct {
+			promises[i] = pip.NewPip(func() struct {
 				Index int
 				Value V
 				error

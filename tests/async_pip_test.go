@@ -2,15 +2,15 @@ package tests
 
 import (
 	"fmt"
-	"github.com/kozhurkin/async"
+	"github.com/kozhurkin/async/pip"
 	"testing"
 	"time"
 )
 
 func TestPip(t *testing.T) {
 	ts := time.Now()
-	pa := async.Pip(func() int { <-time.After(1 * time.Second); return 1 })
-	pb := async.Pip(func() int { <-time.After(2 * time.Second); return 2 })
+	pa := pip.NewPip(func() int { <-time.After(1 * time.Second); return 1 })
+	pb := pip.NewPip(func() int { <-time.After(2 * time.Second); return 2 })
 	a, b := <-pa, <-pb
 	delta := int(time.Now().Sub(ts).Seconds())
 	if delta != 2 {
@@ -23,9 +23,9 @@ func TestPip(t *testing.T) {
 }
 func TestPipsReducer(t *testing.T) {
 	ts := time.Now()
-	res := async.PipsReducer(
-		async.Pip(func() int { <-time.After(1 * time.Second); return 1 }),
-		async.Pip(func() int { <-time.After(2 * time.Second); return 2 }),
+	res := pip.PipsReducer(
+		pip.NewPip(func() int { <-time.After(1 * time.Second); return 1 }),
+		pip.NewPip(func() int { <-time.After(2 * time.Second); return 2 }),
 	)
 	fmt.Println(res, time.Since(ts))
 	return

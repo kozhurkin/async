@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	pipers2 "github.com/kozhurkin/async/pipers"
 )
 
 // can save the resulting array after canceling/error: YES/YES
@@ -12,12 +13,12 @@ func AsyncPipers[A any, V any](ctx context.Context, args []A, f func(int, A) (V,
 		concurrency = len(args)
 	}
 	traffic := make(chan struct{}, concurrency)
-	pipers := make(Pipers[V], len(args))
+	pipers := make(pipers2.Pipers[V], len(args))
 	stop := make(chan struct{})
 
 	for i, a := range args {
 		i, a := i, a
-		pipers[i] = NewPiper(func() (V, error) {
+		pipers[i] = pipers2.NewPiper(func() (V, error) {
 			defer func() {
 				printDebug("--- i=%v, a=%v", i, a)
 				<-traffic

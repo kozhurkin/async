@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kozhurkin/async"
+	"github.com/kozhurkin/async/pipers"
 	"math/rand"
 	"testing"
 	"time"
@@ -12,7 +12,7 @@ import (
 
 func TestPipers(t *testing.T) {
 	ts := time.Now()
-	pp := async.NewPipers(
+	pp := pipers.NewPipers(
 		func() (int, error) { <-time.After(10 * time.Millisecond); return 1, nil },
 		func() (int, error) { <-time.After(20 * time.Millisecond); return 2, errors.New("surprise") },
 		func() (int, error) { <-time.After(15 * time.Millisecond); return 3, nil },
@@ -37,21 +37,21 @@ func TestPipers(t *testing.T) {
 type Ad struct {
 	Name string
 }
-type Platform struct {
+type Site struct {
 	Url string
 }
 type User struct {
-	Id int
+	Name string
 }
 
 func loadAds() ([]*Ad, error) {
-	return []*Ad{{"aviasales"}, {"skyeng"}}, nil
+	return []*Ad{{"Aviasales"}}, nil
 }
 func loadUser(id int) (*User, error) {
-	return &User{11051991}, nil
+	return &User{"Dima"}, nil
 }
-func loadPlatform(id int) (*Platform, error) {
-	return &Platform{"https://logr.info"}, nil
+func loadPlatform(id int) (*Site, error) {
+	return &Site{"site.com"}, nil
 }
 func TestPipersReadme(t *testing.T) {
 
@@ -60,34 +60,26 @@ func TestPipersReadme(t *testing.T) {
 
 	var ads []*Ad
 	var user *User
-	var platform *Platform
+	var site *Site
 
-	pp := async.NewPipers(
-		async.Ref(&ads, func() ([]*Ad, error) {
+	pp := pipers.NewPipers(
+		pipers.Ref(&ads, func() ([]*Ad, error) {
 			return loadAds()
 		}),
-		async.Ref(&user, func() (*User, error) {
+		pipers.Ref(&user, func() (*User, error) {
 			return loadUser(userId)
 		}),
-		async.Ref(&platform, func() (*Platform, error) {
+		pipers.Ref(&site, func() (*Site, error) {
 			return loadPlatform(platformId)
 		}),
 	)
 
-	res, err := pp.Run().Resolve()
+	results, _ := pp.Run().Resolve()
 
-	fmt.Println(res, err)
-	fmt.Println(ads, user, platform)
-
-	//ads := res.Shift().([]*Ad)
-	//user := res.Shift().(*User)
-	//platform := res.Shift().(Platform)
-
-	//ads, user, platform := res.Shift().([]*Ad), res.Shift().(*User), res.Shift().(*Platform)
-
-	//fmt.Println(ads, platform, user, user.Id)
-
-	//fmt.Println(results.Get())
+	fmt.Printf("results: %T\t%v\n", results, results)
+	fmt.Printf("ads:     %T\t%v\n", ads, ads)
+	fmt.Printf("user:    %T\t%v\n", user, user)
+	fmt.Printf("site:    %T\t%v\n", site, site)
 
 	<-time.After(time.Second)
 

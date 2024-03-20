@@ -3,7 +3,7 @@ package tests
 import (
 	"errors"
 	"fmt"
-	"github.com/kozhurkin/async"
+	"github.com/kozhurkin/async/promise"
 	"testing"
 	"time"
 )
@@ -11,7 +11,7 @@ import (
 func TestPromise(t *testing.T) {
 	//for i := 0; i < 1000; i += 1 {
 	ts := time.Now()
-	p := async.Resolve(2).Then(func(v int) (int, error) {
+	p := promise.Resolve(2).Then(func(v int) (int, error) {
 		<-time.After(10 * time.Millisecond)
 		return v * v, errors.New("oops")
 	}).Then(func(v int) (int, error) {

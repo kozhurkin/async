@@ -1,4 +1,4 @@
-package async
+package pipers
 
 import (
 	"context"

@@ -26,7 +26,7 @@ LOOP:
 			break LOOP
 		default:
 		}
-		promises[i] = Pipeline(func() V {
+		promises[i] = Pip(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
 			value, err := f(i, arg)
 			if err != nil {

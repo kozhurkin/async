@@ -34,67 +34,58 @@ func TestPipers(t *testing.T) {
 	return
 }
 
+type Ad struct {
+	Name string
+}
+type Platform struct {
+	Url string
+}
+type User struct {
+	Id int
+}
+
+func loadAds() ([]*Ad, error) {
+	return []*Ad{{"aviasales"}, {"skyeng"}}, nil
+}
+func loadUser(id int) (*User, error) {
+	return &User{11051991}, nil
+}
+func loadPlatform(id int) (*Platform, error) {
+	return &Platform{"https://logr.info"}, nil
+}
 func TestPipersReadme(t *testing.T) {
-	type Ad struct {
-		Name string
-	}
-	type Platform struct {
-		Url string
-	}
-	type User struct {
-		Id int
-	}
 
 	var userId = 1
 	var platformId = 1
 
-	var a []*Ad
-	var u User
-	var p Platform
-
-	loadAds := func() ([]*Ad, error) {
-		return []*Ad{{"aviasales"}, {"skyeng"}}, nil
-	}
-	loadPlatform := func(id int) (Platform, error) {
-		return Platform{"https://logr.info"}, nil
-	}
-	loadUser := func(id int) (User, error) {
-		return User{987654321}, nil
-	}
+	var ads []*Ad
+	var user *User
+	var platform *Platform
 
 	pp := async.NewPipers(
-		async.Ref(&a, func() ([]*Ad, error) {
+		async.Ref(&ads, func() ([]*Ad, error) {
 			return loadAds()
 		}),
-		async.Ref(&u, func() (User, error) {
+		async.Ref(&user, func() (*User, error) {
 			return loadUser(userId)
 		}),
-		async.Ref(&p, func() (Platform, error) {
+		async.Ref(&platform, func() (*Platform, error) {
 			return loadPlatform(platformId)
 		}),
 	)
 
-	err := pp.Run().FirstError()
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(111111, a)
-	fmt.Println(222222, u)
-	fmt.Println(333333, p)
-
-	res := pp.Results()
+	res, err := pp.Run().Resolve()
 
 	fmt.Println(res, err)
+	fmt.Println(ads, user, platform)
 
-	ads := res.Shift().([]*Ad)
-	user := res.Shift().(User)
-	platform := res.Shift().(Platform)
+	//ads := res.Shift().([]*Ad)
+	//user := res.Shift().(*User)
+	//platform := res.Shift().(Platform)
 
 	//ads, user, platform := res.Shift().([]*Ad), res.Shift().(*User), res.Shift().(*Platform)
 
-	fmt.Println(ads, platform, user)
+	//fmt.Println(ads, platform, user, user.Id)
 
 	//fmt.Println(results.Get())
 

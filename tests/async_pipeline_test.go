@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-func TestPipeline(t *testing.T) {
+func TestPip(t *testing.T) {
 	ts := time.Now()
-	pa := async.Pipeline(func() int { <-time.After(1 * time.Second); return 1 })
-	pb := async.Pipeline(func() int { <-time.After(2 * time.Second); return 2 })
+	pa := async.Pip(func() int { <-time.After(1 * time.Second); return 1 })
+	pb := async.Pip(func() int { <-time.After(2 * time.Second); return 2 })
 	a, b := <-pa, <-pb
 	delta := int(time.Now().Sub(ts).Seconds())
 	if delta != 2 {
@@ -21,11 +21,11 @@ func TestPipeline(t *testing.T) {
 	}
 	return
 }
-func TestPipelineReducer(t *testing.T) {
+func TestPipsReducer(t *testing.T) {
 	ts := time.Now()
-	res := async.PipelineReducer(
-		async.Pipeline(func() int { <-time.After(1 * time.Second); return 1 }),
-		async.Pipeline(func() int { <-time.After(2 * time.Second); return 2 }),
+	res := async.PipsReducer(
+		async.Pip(func() int { <-time.After(1 * time.Second); return 1 }),
+		async.Pip(func() int { <-time.After(2 * time.Second); return 2 }),
 	)
 	fmt.Println(res, time.Since(ts))
 	return

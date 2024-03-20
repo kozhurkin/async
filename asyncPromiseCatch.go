@@ -28,7 +28,7 @@ func AsyncPromiseCatch[A any, V any](ctx context.Context, args []A, f func(int, 
 
 	for i, arg := range args {
 		i, arg := i, arg
-		promises[i] = Pipeline(func() V {
+		promises[i] = Pip(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
 			value, e := f(i, arg)
 			if e != nil {

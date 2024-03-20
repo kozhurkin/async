@@ -4,7 +4,8 @@ Helper for asynchronous work in golang powered by generics
 
 * `AsyncToArray()`
 * `AsyncToMap()`
-* `Pipeline()`
+* `NewPipers()`
+* `Pip()`
 
 
 
@@ -83,6 +84,7 @@ pp := async.NewPipers(
 )
 
 err := pp.Run().FirstError()
+
 if err != nil {
     panic(err)
 }
@@ -91,16 +93,52 @@ results := pp.Results()
 
 fmt.Println(err, results)
 // <nil> [[] 0xc000180008 0x10247db80]
+
+ads := res.Shift().([]Ad)
+user := res.Shift().(User)
+platform := res.Shift().(Platform)
+
+fmt.Println(ads, user, platform)
+// [] 0xc000180008 0x10247db80
 ```
 
-#### Pipeline()
+```golang
+// usage of helper .Ref() and method .Resolve() 
+
+var ads []*Ad
+var user *User
+var platform *Platform
+
+pp := async.NewPipers(
+    async.Ref(&ads, func() ([]*Ad, error) {
+        return loadAds()
+    }),
+    async.Ref(&user, func() (*User, error) {
+        return loadUser(userId)
+    }),
+    async.Ref(&platform, func() (*Platform, error) {
+        return loadPlatform(platformId)
+    }),
+)
+
+res, err := pp.Run().Resolve()
+
+fmt.Println(res, err)
+// [[0xc00005e040] 0xc000114008 0xc000096740] <nil>
+
+fmt.Println(ads, user, platform)
+// [0xc00005e040] &{11051991} &{site.com}
+
+```
+
+#### Pip()
 ``` golang
 ts := time.Now()
-pa := async.Pipeline(func() int {
+pa := async.Pip(func() int {
     <-time.After(2 * time.Second) // working 2 seconds
-    return 2023
+    return 2024
 })
-pb := async.Pipeline(func() string {
+pb := async.Pip(func() string {
     <-time.After(3 * time.Second) // working 3 seconds
     return "Happy New Year!"
 })

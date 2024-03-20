@@ -43,7 +43,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(int,
 				break
 			}
 			i, arg := i, arg
-			promises[i] = Pipeline(func() struct {
+			promises[i] = Pip(func() struct {
 				Index int
 				Value V
 				error

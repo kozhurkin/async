@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func Pipeline[R any, C chan R](f func() R) C {
+func Pip[V any, C chan V](f func() V) C {
 	out := make(C, 1)
 	go func() {
 		out <- f()
@@ -13,9 +13,9 @@ func Pipeline[R any, C chan R](f func() R) C {
 	return out
 }
 
-func PipelineReducer[R any](pipes ...chan R) []R {
-	res := make([]R, len(pipes))
-	for i, p := range pipes {
+func PipsReducer[V any](pips ...chan V) []V {
+	res := make([]V, len(pips))
+	for i, p := range pips {
 		fmt.Printf("%v %v %T\n", i, p, p)
 		res[i] = <-p
 	}

@@ -25,7 +25,7 @@ func TestPipers(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	err, res := pp.Run().FirstErrorContext(ctx), pp.Results()
+	err, res := pp.Run().FirstErrorContext(ctx), 0 //pp.Results()
 
 	fmt.Println(timeout, res, err, time.Since(ts))
 
@@ -50,28 +50,23 @@ func loadAds() ([]*Ad, error) {
 func loadUser(id int) (*User, error) {
 	return &User{"Dima"}, nil
 }
-func loadPlatform(id int) (*Site, error) {
+func loadSite(id int) (*Site, error) {
 	return &Site{"site.com"}, nil
 }
-func TestPipersReadme(t *testing.T) {
 
-	var userId = 1
-	var platformId = 1
+var userId = 1
+var siteId = 1
+
+func TestPipersReadme(t *testing.T) {
 
 	var ads []*Ad
 	var user *User
 	var site *Site
 
 	pp := pipers.NewPipers(
-		pipers.Ref(&ads, func() ([]*Ad, error) {
-			return loadAds()
-		}),
-		pipers.Ref(&user, func() (*User, error) {
-			return loadUser(userId)
-		}),
-		pipers.Ref(&site, func() (*Site, error) {
-			return loadPlatform(platformId)
-		}),
+		pipers.Ref(&ads, func() ([]*Ad, error) { return loadAds() }),
+		pipers.Ref(&user, func() (*User, error) { return loadUser(userId) }),
+		pipers.Ref(&site, func() (*Site, error) { return loadSite(siteId) }),
 	)
 
 	results, _ := pp.Run().Resolve()
@@ -82,6 +77,4 @@ func TestPipersReadme(t *testing.T) {
 	fmt.Printf("site:    %T\t%v\n", site, site)
 
 	<-time.After(time.Second)
-
-	return
 }

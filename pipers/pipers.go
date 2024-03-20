@@ -2,7 +2,6 @@ package pipers
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -14,13 +13,13 @@ type Piper[R any] struct {
 }
 
 func (p Piper[R]) Close() Piper[R] {
-	fmt.Println("close", p)
+	//fmt.Println("close", p)
 	close(p.Out)
 	close(p.Err)
 	return p
 }
 func (p Piper[R]) Run() Piper[R] {
-	fmt.Println("run  ", p)
+	//fmt.Println("run  ", p)
 	go func() {
 		v, e := p.Job()
 		p.Out <- v
@@ -146,7 +145,7 @@ func (pp Pipers[R]) ErrorsChan() chan error {
 	}
 	go func() {
 		wg.Wait()
-		fmt.Println("************** close(errchan)")
+		//fmt.Println("************** close(errchan)")
 		close(errchan)
 	}()
 

@@ -84,7 +84,7 @@ func main() {
     pp := pipers.NewPipers(
         func() (interface{}, error) { return loadAds() },
         func() (interface{}, error) { return loadUser(userId) },
-        func() (interface{}, error) { return loadPlatform(platformId) },
+        func() (interface{}, error) { return loadSite(siteId) },
     )
 
     err := pp.Run().FirstError()
@@ -97,38 +97,32 @@ func main() {
 
     ads := res[1].([]Ad)
     user := res[2].(User)
-    platform := res[3].(Platform)
+    site := res[3].(Site)
 }
 ```
 
 ``` golang
-// usage of helper .Ref() and method .Resolve() 
 import github.com/kozhurkin/async/pipers
 
+// usage of helper .Ref() and method .Resolve()
 func main() {
 
-    var ads []Ad
-    var user User
-    var platform Platform
+    var ads []*Ad
+    var user *User
+    var site *Site
 
-    pp := async.NewPipers(
-        async.Ref(&ads, func() ([]Ad, error) {
-            return loadAds()
-        }),
-        async.Ref(&user, func() (User, error) {
-            return loadUser(userId)
-        }),
-        async.Ref(&platform, func() (Platform, error) {
-            return loadPlatform(platformId)
-        }),
+    pp := pipers.NewPipers(
+        pipers.Ref(&ads, func() ([]*Ad, error) { return loadAds() }),
+        pipers.Ref(&user, func() (*User, error) { return loadUser(userId) }),
+        pipers.Ref(&site, func() (*Site, error) { return loadSite(siteId) }),
     )
 
-    results, err := pp.Run().Resolve()
+    results, _ := pp.Run().Resolve()
 
-    fmt.Printf("results: %T\t%v\n", results, results) // results: []interface {} [[0xc000224010] 0xc0002a00f0 0xc000224020]
-    fmt.Printf("ads:     %T\t%v\n", ads, ads)         // ads:     []*tests.Ad    [0xc000224010]
-    fmt.Printf("user:    %T\t%v\n", user, user)       // user:    *tests.User    &{Dima}
-    fmt.Printf("site:    %T\t%v\n", site, site)       // site:    *tests.Site    &{site.com}
+    fmt.Printf("results: %T\t%v\n", results, results)   // results: []interface {} [[0xc000224010] 0xc0002a00f0 0xc000224020]
+    fmt.Printf("ads:     %T\t%v\n", ads, ads)           // ads:     []*tests.Ad    [0xc000224010]
+    fmt.Printf("user:    %T\t%v\n", user, user)         // user:    *tests.User    &{Dima}
+    fmt.Printf("site:    %T\t%v\n", site, site)         // site:    *tests.Site    &{site.com}
 }
 ```
 

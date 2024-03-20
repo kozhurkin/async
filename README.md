@@ -5,7 +5,7 @@ Helper for asynchronous work in golang powered by generics
 * `AsyncToArray()`
 * `AsyncToMap()`
 * `NewPipers()`
-* `Pip()`
+* `NewPip()`
 
 
 
@@ -126,7 +126,7 @@ func main() {
 }
 ```
 
-#### Pip()
+#### NewPip()
 ``` golang
 import github.com/kozhurkin/async/pip
 

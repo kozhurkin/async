@@ -12,12 +12,12 @@ func main() {
 	ts := time.Now()
 	fmt.Println("start")
 
-	p2 := async.Promise(func() (int, error) {
+	p2 := async.NewPromise(func() (int, error) {
 		<-time.After(2 * time.Second)
 		return 2, nil
 	})
 
-	p1 := async.Promise(func() (int, error) {
+	p1 := async.NewPromise(func() (int, error) {
 		<-time.After(1 * time.Second)
 		return 1, nil
 	})

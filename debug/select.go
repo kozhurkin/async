@@ -9,8 +9,7 @@ func main() {
 	durations := []int{300, 100, 200}
 	pipes := make([]chan int, len(durations))
 	for i, d := range durations {
-		i := i
-		d := d
+		i, d := i, d
 		pipes[i] = make(chan int, 1)
 		go func() {
 			<-time.After(time.Duration(d) * time.Millisecond)
@@ -34,7 +33,7 @@ func main() {
 				if len(result) == len(pipes) {
 					return
 				}
-			default: // comment or uncomment this line, see results
+				//default: // comment or uncomment this line, see results
 			}
 			i += 1
 		}

@@ -30,11 +30,11 @@ func main() {
 	}()
 
 	concurrency := 3
-	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	data := []int{1, 2, 3, 4, 5, 6} //, 7, 8, 9}
 OUT:
 	for i := 1; i <= 1; i++ {
-		res, err := async.AsyncSemaphore(ctx, data, func(i int, k int) (int, error) {
-			rnd := rand.Intn(1000)
+		res, err := async.AsyncPipers(ctx, data, func(i int, k int) (int, error) {
+			rnd := rand.Intn(100)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, fmt.Errorf("unknown error (%v)", k)
@@ -50,5 +50,6 @@ OUT:
 			continue
 		}
 	}
-	<-time.After(1 * time.Second)
+	<-time.After(2 * time.Second)
+	fmt.Println("exit")
 }

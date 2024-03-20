@@ -15,85 +15,90 @@ var tasks = Tasks{
 		Desc: "Example of success launch        ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
-			{50 * time.Millisecond, nil},
-			{100 * time.Millisecond, nil},
-			{30 * time.Millisecond, nil},
-			{40 * time.Millisecond, nil},
-			{25 * time.Millisecond, nil},
+			{50, nil},
+			{100, nil},
+			{30, nil},
+			{40, nil},
+			{25, nil},
 		},
 		CancelAfter: 0,
+		TimeUnit:    time.Millisecond,
 		Expectations: Expectations{
-			{1, Result{1, 4, 9, 16, 25}, nil},
-			{2, Result{1, 4, 9, 16, 25}, nil},
-			{6, Result{1, 4, 9, 16, 25}, nil},
+			{1, 250, Result{1, 4, 9, 16, 25}, nil},
+			{2, 125, Result{1, 4, 9, 16, 25}, nil},
+			{6, 100, Result{1, 4, 9, 16, 25}, nil},
 		},
 	},
 	{
 		Desc: "Cancel context before throw      ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
-			{50 * time.Millisecond, nil},
-			{100 * time.Millisecond, throw},
-			{30 * time.Millisecond, nil},
-			{40 * time.Millisecond, nil},
-			{25 * time.Millisecond, nil},
+			{50, nil},
+			{100, throw},
+			{30, nil},
+			{40, nil},
+			{25, nil},
 		},
-		CancelAfter: 90 * time.Millisecond,
+		CancelAfter: 90,
+		TimeUnit:    time.Millisecond,
 		Expectations: Expectations{
-			{1, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
-			{2, Result{1, 0, 9, 0, 0}, context.DeadlineExceeded},
-			{6, Result{1, 0, 9, 16, 25}, context.DeadlineExceeded},
+			{1, 90, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
+			{2, 90, Result{1, 0, 9, 0, 0}, context.DeadlineExceeded},
+			{6, 90, Result{1, 0, 9, 16, 25}, context.DeadlineExceeded},
 		},
 	},
 	{
 		Desc: "Throw 1 error simple             ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
-			{50 * time.Millisecond, nil},
-			{100 * time.Millisecond, throw},
-			{30 * time.Millisecond, nil},
-			{40 * time.Millisecond, nil},
-			{25 * time.Millisecond, nil},
+			{50, nil},
+			{100, throw},
+			{30, nil},
+			{40, nil},
+			{25, nil},
 		},
 		CancelAfter: 0,
+		TimeUnit:    time.Millisecond,
 		Expectations: Expectations{
-			{1, Result{1, 0, 0, 0, 0}, throw},
-			{2, Result{1, 0, 9, 0, 0}, throw},
-			{6, Result{1, 0, 9, 16, 25}, throw},
+			{1, 150, Result{1, 0, 0, 0, 0}, throw},
+			{2, 100, Result{1, 0, 9, 0, 0}, throw},
+			{6, 100, Result{1, 0, 9, 16, 25}, throw},
 		},
 	},
 	{
 		Desc: "Throw 1 error before canceling   ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
-			{50 * time.Millisecond, nil},
-			{100 * time.Millisecond, throw},
-			{30 * time.Millisecond, nil},
-			{40 * time.Millisecond, nil},
-			{25 * time.Millisecond, nil},
+			{50, nil},
+			{100, throw},
+			{30, nil},
+			{40, nil},
+			{25, nil},
 		},
-		CancelAfter: 110 * time.Millisecond,
+		CancelAfter: 110,
+		TimeUnit:    time.Millisecond,
 		Expectations: Expectations{
-			{1, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
-			{2, Result{1, 0, 9, 0, 0}, throw},
-			{6, Result{1, 0, 9, 16, 25}, throw},
+			{1, 110, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
+			{2, 100, Result{1, 0, 9, 0, 0}, throw},
+			{6, 100, Result{1, 0, 9, 16, 25}, throw},
 		},
 	},
 	{
 		Desc: "Throw 2 errors after each other  ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
-			{50 * time.Millisecond, nil},
-			{100 * time.Millisecond, throw},
-			{30 * time.Millisecond, throw2},
-			{40 * time.Millisecond, nil},
-			{25 * time.Millisecond, nil},
+			{50, nil},
+			{100, throw},
+			{30, throw2},
+			{40, nil},
+			{25, nil},
 		},
 		CancelAfter: 0,
+		TimeUnit:    time.Millisecond,
 		Expectations: Expectations{
-			{1, Result{1, 0, 0, 0, 0}, throw},
-			{2, Result{1, 0, 0, 0, 0}, throw2},
-			{6, Result{0, 0, 0, 0, 25}, throw2},
+			{1, 150, Result{1, 0, 0, 0, 0}, throw},
+			{2, 80, Result{1, 0, 0, 0, 0}, throw2},
+			{6, 30, Result{0, 0, 0, 0, 25}, throw2},
 		},
 	},
 }
@@ -106,6 +111,12 @@ func TestAsyncSemaphore(t *testing.T) {
 func TestAsyncWorkers(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncWorkers[int, int]}.Run()
+}
+
+func TestAsyncPipers(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncPipers[int, int]}.Run()
+	<-time.After(time.Second)
 }
 
 func TestAsyncErrgroup(t *testing.T) {

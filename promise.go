@@ -1,22 +1,34 @@
 package async
 
-type P[R any] struct {
+import (
+	"sync"
+)
+
+type Promise[R any] struct {
 	job    func() (R, error)
 	Out    chan *R
 	Err    chan error
 	runned chan struct{}
 	done   chan struct{}
-	parent *P[R]
-	//TODO error, result
+	result *R
+	err    error
+	once   sync.Once
+	mu     sync.Mutex
 }
 
-func (p P[R]) markAsDone() {
-	close(p.done)
-}
-func (p P[R]) markAsRunned() {
+func (p *Promise[R]) markAsRunned() {
 	close(p.runned)
 }
-func (p P[R]) Done() bool {
+
+func (p *Promise[R]) markAsDone() {
+	close(p.done)
+}
+
+func (p *Promise[R]) Done() <-chan struct{} {
+	return p.done
+}
+
+func (p *Promise[R]) Completed() bool {
 	select {
 	case <-p.done:
 		return true
@@ -24,7 +36,8 @@ func (p P[R]) Done() bool {
 		return false
 	}
 }
-func (p P[R]) Runned() bool {
+
+func (p *Promise[R]) Runned() bool {
 	select {
 	case <-p.runned:
 		return true
@@ -33,27 +46,41 @@ func (p P[R]) Runned() bool {
 	}
 }
 
-func (p *P[R]) Value() R {
-	//fmt.Println("Value()", p)
-	return *(<-p.Run().Out)
-}
-func (p *P[R]) Error() error {
-	return <-p.Run().Err
+func (p *Promise[R]) Value() R {
+	p.Run()
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	value, ok := <-p.Out
+	if ok {
+		p.result = value
+		return *value
+	}
+	return *p.result
 }
 
-func (p *P[R]) Return() (R, error) {
+func (p *Promise[R]) Error() error {
+	p.Run()
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	err, ok := <-p.Err
+	if ok {
+		p.err = err
+		return err
+	}
+	return p.err
+}
+
+func (p *Promise[R]) Return() (R, error) {
 	err := p.Error()
 	return p.Value(), err
-
 }
 
-func (p *P[R]) Then(f func(R) (R, error)) *P[R] {
-	//fmt.Println("Then()", p)
-	return p.join(f)
-}
-
-func (p *P[R]) join(f func(R) (R, error)) *P[R] {
-	return Promise(func() (R, error) {
+func (p *Promise[R]) Then(f func(R) (R, error)) *Promise[R] {
+	return NewPromise(func() (R, error) {
 		err := p.Error()
 		value := p.Value()
 		if err != nil {
@@ -63,40 +90,42 @@ func (p *P[R]) join(f func(R) (R, error)) *P[R] {
 	})
 }
 
-func (p *P[R]) Run() *P[R] {
-	//fmt.Println("Run", p)
-	if p.parent != nil {
-		go p.parent.Run()
-	}
-	if !p.Runned() {
+func (p *Promise[R]) Catch(f func(error) (R, error)) *Promise[R] {
+	return NewPromise(func() (R, error) {
+		if err := p.Error(); err != nil {
+			return f(err)
+		}
+		return p.Value(), nil
+	})
+}
+
+func (p *Promise[R]) Run() *Promise[R] {
+	p.once.Do(func() {
 		p.markAsRunned()
-	} else {
-		return p
-	}
-	go func() {
-		v, e := p.job()
-		p.Out <- &v
-		p.Err <- e
-		close(p.Out)
-		close(p.Err)
-		p.markAsDone()
-	}()
+		go func() {
+			v, e := p.job()
+			p.Err <- e
+			p.Out <- &v
+			close(p.Out)
+			close(p.Err)
+			p.markAsDone()
+		}()
+	})
 	return p
 }
 
-func Resolve[R any](v R) *P[R] {
-	return Promise(func() (R, error) {
+func Resolve[R any](v R) *Promise[R] {
+	return NewPromise(func() (R, error) {
 		return v, nil
-	}) //.Run()
+	})
 }
-func Promise[R any](job func() (R, error)) *P[R] {
-	out := make(chan *R, 1)
-	err := make(chan error, 1)
-
-	res := P[R]{Out: out, Err: err}
-	res.runned = make(chan struct{}, 1)
-	res.done = make(chan struct{}, 1)
-	res.job = job
-
+func NewPromise[R any](job func() (R, error)) *Promise[R] {
+	res := Promise[R]{
+		job:    job,
+		Out:    make(chan *R, 1),
+		Err:    make(chan error, 1),
+		runned: make(chan struct{}),
+		done:   make(chan struct{}),
+	}
 	return &res
 }

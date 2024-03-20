@@ -4,27 +4,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 )
 
 type ProcessInfo [5]struct {
-	Delay time.Duration
+	Delay int
 	Err   error
 }
 
 type Expectations []struct {
 	Concurrency int
+	Duration    int
 	Result
 	Error error
-	//time.Duration
 }
 
 type Tasks []struct {
 	Desc string
 	Args [5]int
 	ProcessInfo
-	CancelAfter time.Duration
+	CancelAfter int
+	TimeUnit    time.Duration
 	Expectations
 }
 
@@ -42,13 +44,13 @@ func (l Launcher) Run() *Launcher {
 			ctx := context.Background()
 			if task.CancelAfter != 0 {
 				var cancel context.CancelFunc
-				ctx, cancel = context.WithTimeout(ctx, task.CancelAfter)
+				ctx, cancel = context.WithTimeout(ctx, time.Duration(task.CancelAfter)*task.TimeUnit)
 				defer cancel()
 			}
 			ts := time.Now()
 			result, err := l.Handler(ctx, task.Args[:5], func(i int, arg int) (int, error) {
 				pi := task.ProcessInfo[i]
-				<-time.After(pi.Delay)
+				<-time.After(time.Duration(pi.Delay) * task.TimeUnit)
 				if pi.Err != nil {
 					return 0, pi.Err
 				}
@@ -59,11 +61,15 @@ func (l Launcher) Run() *Launcher {
 			//assert.Equalf(l.T, task.ExpectedError, err, "__")
 			//assert.Equal(l.T, task.ExpectedResult, result5)
 
+			duration := int(time.Since(ts) / task.TimeUnit)
+			diff := expect.Duration - duration
+
 			l.T.Log(fmt.Sprintf(
-				"%v :  c=%v \t %v \t %v %v, \t %v (%v)",
+				"%v :  c=%v \t %v %v \t %v %v, \t %v (%v)",
 				task.Desc,
 				expect.Concurrency,
-				time.Since(ts).Milliseconds(),
+				formatBool(math.Abs(float64(diff)) < 5),
+				duration,
 				formatBool(expect.Result.IsEqual(result)),
 				result,
 				formatBool(errors.Is(err, expect.Error)),

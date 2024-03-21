@@ -12,7 +12,7 @@ var throw = errors.New("throw error")
 var throw2 = errors.New("throw error (2)")
 var tasks = Tasks{
 	{
-		Desc: "Example of success launch        ",
+		Desc: "SUCCESS launch          ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50, nil},
@@ -30,7 +30,7 @@ var tasks = Tasks{
 		},
 	},
 	{
-		Desc: "Cancel context before throw      ",
+		Desc: "DEADLINE before THROW   ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50, nil},
@@ -48,7 +48,7 @@ var tasks = Tasks{
 		},
 	},
 	{
-		Desc: "Throw 1 error simple             ",
+		Desc: "THROW 1 error simple    ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50, nil},
@@ -66,7 +66,7 @@ var tasks = Tasks{
 		},
 	},
 	{
-		Desc: "Throw 1 error before canceling   ",
+		Desc: "THROW 1 before DEADLINE ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50, nil},
@@ -84,7 +84,7 @@ var tasks = Tasks{
 		},
 	},
 	{
-		Desc: "Throw 2 errors after each other  ",
+		Desc: "THROW 2 errors following",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{
 			{50, nil},

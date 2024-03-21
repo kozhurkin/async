@@ -158,9 +158,8 @@ func (pp Pipers[R]) FirstNErrorsContext(ctx context.Context, n int) []error {
 					return nil
 				}
 				return res
-			} else if err != nil {
-				res = append(res, err)
 			}
+			res = append(res, err)
 		case <-done:
 			res = append(res, ctx.Err())
 		}
@@ -175,12 +174,7 @@ func (pp Pipers[R]) FirstNErrors(n int) []error {
 }
 
 func (pp Pipers[R]) FirstError() error {
-	for err := range pp.ErrorsChan() {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return <-pp.ErrorsChan()
 }
 
 func (pp Pipers[R]) FirstErrorContext(ctx context.Context) error {
@@ -190,9 +184,8 @@ func (pp Pipers[R]) FirstErrorContext(ctx context.Context) error {
 		case err, ok := <-errchan:
 			if !ok {
 				return nil
-			} else if err != nil {
-				return err
 			}
+			return err
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -200,16 +193,16 @@ func (pp Pipers[R]) FirstErrorContext(ctx context.Context) error {
 }
 
 func (pp Pipers[R]) ErrorsChan() chan error {
-	size := len(pp)
-	errchan := make(chan error, size)
+	errchan := make(chan error, len(pp))
 	wg := sync.WaitGroup{}
 
-	wg.Add(size)
+	wg.Add(len(pp))
 	for _, p := range pp {
-		pipe := p
+		p := p
 		go func() {
-			e := <-pipe.Err
-			errchan <- e
+			if err := <-p.Err; err != nil {
+				errchan <- err
+			}
 			wg.Done()
 		}()
 	}

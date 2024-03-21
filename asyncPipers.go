@@ -12,9 +12,7 @@ func AsyncPipers[A any, V any](ctx context.Context, args []A, f func(int, A) (V,
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
-	traffic := make(chan struct{}, concurrency)
 	pp := make(pipers.Pipers[V], len(args))
-	stop := make(chan struct{})
 
 	for i, a := range args {
 		i, a := i, a
@@ -22,31 +20,16 @@ func AsyncPipers[A any, V any](ctx context.Context, args []A, f func(int, A) (V,
 			printDebug("++ call i=%v, a=%v", i, a)
 			value, err := f(i, a)
 			printDebug("^ defer i=%v, a=%v, err=%v", i, a, err)
-			if err == nil {
-				<-traffic
-			}
 			return value, err
 		})
 	}
 
-	go func() {
-		defer func() {
-			printDebug("close(traffic)")
-			defer close(traffic)
-		}()
-		for _, pp := range pp {
-			select {
-			case <-stop:
-				pp.Close()
-			case traffic <- struct{}{}:
-				pp.Run()
-			}
-		}
-	}()
+	pp.RunConcurrency(concurrency)
 
-	err := pp.FirstErrorContext(ctx)
-	close(stop)
-	printDebug("close(stop)")
-
-	return pp.Results(), err
+	select {
+	case err := <-pp.ErrorsChan():
+		return pp.Results(), err
+	case <-ctx.Done():
+		return pp.Results(), ctx.Err()
+	}
 }

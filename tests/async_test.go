@@ -161,7 +161,10 @@ func TestAsyncPipers(t *testing.T) {
 }
 
 func TestAsyncPromiseAtomic(t *testing.T) {
-	Launcher{t, tasks, async.AsyncPromiseAtomic[int, int]}.Run()
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncPromiseAtomic[int, int]}.
+		//Pick(1, 1).
+		Run()
 }
 
 func TestAsyncErrgroup(t *testing.T) {

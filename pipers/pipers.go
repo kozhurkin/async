@@ -8,57 +8,14 @@ import (
 	"time"
 )
 
-var debug = 0
-
 func printDebug(template string, rest ...interface{}) {
-	if debug == 1 {
+	var debug bool
+	//debug = true
+	if debug {
 		args := append([]interface{}{time.Now().String()[0:25]}, rest...)
 		fmt.Printf("pipers:  [ %v ]    "+template+"\n", args...)
 	}
 }
-
-type Piper[R any] struct {
-	Out chan R
-	Err chan error
-	Job func() (R, error)
-}
-
-func (p Piper[R]) Close() Piper[R] {
-	printDebug(".Close(%v)", p)
-	close(p.Out)
-	close(p.Err)
-	return p
-}
-func (p Piper[R]) Run() Piper[R] {
-	p.run()
-	return p
-}
-func (p Piper[R]) run() chan error {
-	printDebug(".run(%v)  ", p)
-	done := make(chan error, 1)
-	go func() {
-		v, e := p.Job()
-		if e != nil {
-			done <- e
-		}
-		close(done)
-		p.Out <- v
-		p.Err <- e
-		p.Close()
-	}()
-	return done
-}
-
-func NewPiper[R any](f func() (R, error)) Piper[R] {
-	return Piper[R]{
-		Out: make(chan R, 1),
-		Err: make(chan error, 1),
-		Job: f,
-	}
-}
-
-// Concurrency
-// Context
 
 type Pipers[R any] []Piper[R]
 
@@ -70,6 +27,10 @@ func (pp Pipers[R]) Run() Pipers[R] {
 }
 
 func (pp Pipers[R]) RunConcurrency(n int) Pipers[R] {
+	return pp.RunContextConcurrency(context.Background(), n)
+}
+
+func (pp Pipers[R]) RunContextConcurrency(ctx context.Context, n int) Pipers[R] {
 	if n == 0 {
 		return pp.Run()
 	}
@@ -85,16 +46,17 @@ func (pp Pipers[R]) RunConcurrency(n int) Pipers[R] {
 				close(catch)
 			})
 		}()
-		for i, p := range pp {
-			i, p := i, p
+		for _, p := range pp {
+			p := p
 			select {
+			case <-ctx.Done():
+				p.Close()
 			case <-catch:
-				printDebug("___p.Close(%v)", i)
 				p.Close()
 			case traffic <- struct{}{}:
-				printDebug("___go func(%v)", i)
 				go func() {
-					if err := <-p.run(); err != nil {
+					err := <-p.run()
+					if err != nil {
 						once.Do(func() {
 							close(catch)
 						})
@@ -179,16 +141,14 @@ func (pp Pipers[R]) FirstError() error {
 
 func (pp Pipers[R]) FirstErrorContext(ctx context.Context) error {
 	errchan := pp.ErrorsChan()
-	for {
-		select {
-		case err, ok := <-errchan:
-			if !ok {
-				return nil
-			}
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
+	select {
+	case err, ok := <-errchan:
+		if !ok {
+			return nil
 		}
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

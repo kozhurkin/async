@@ -38,7 +38,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(int,
 
 	go func() {
 		for i, arg := range args {
-			if atomic.LoadInt32(&stop) == 1 {
+			if atomic.LoadInt32(&stop) != 0 {
 				promises = promises[0:i]
 				printDebug("SKIP %v", len(promises))
 				break
@@ -53,7 +53,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(int,
 				value, err := f(i, arg)
 				printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
 				if err != nil {
-					atomic.CompareAndSwapInt32(&stop, 0, 1)
+					atomic.AddInt32(&stop, 1)
 				}
 				printDebug("promises[%v] <- {%v %v}", i, arg, value)
 				<-traffic
@@ -91,7 +91,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(int,
 		select {
 		case <-ctx.Done():
 			printDebug("<-ctx.Done():")
-			atomic.CompareAndSwapInt32(&stop, 0, 1)
+			atomic.AddInt32(&stop, 1)
 			return res, ctx.Err()
 		case m, ok := <-output:
 			if !ok {

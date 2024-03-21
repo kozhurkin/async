@@ -33,6 +33,24 @@ var tasks = Tasks{
 		},
 	},
 	{
+		Desc: "SUCCESS DEADLINE        ",
+		Args: [5]int{1, 2, 3, 4, 5},
+		ProcessInfo: ProcessInfo{
+			{50, nil},
+			{100, nil},
+			{30, nil},
+			{40, nil},
+			{25, nil},
+		},
+		CancelAfter: 90,
+		TimeUnit:    TIME_UNIT,
+		Expectations: Expectations{
+			{1, 2, 90, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
+			{2, 4, 90, Result{1, 0, 9, 0, 0}, context.DeadlineExceeded},
+			{6, 5, 90, Result{1, 0, 9, 16, 25}, context.DeadlineExceeded},
+		},
+	},
+	{
 		Desc: "DEADLINE before THROW   ",
 		Args: [5]int{1, 2, 3, 4, 5},
 		ProcessInfo: ProcessInfo{

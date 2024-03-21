@@ -8,8 +8,11 @@ import (
 	"time"
 )
 
+const TIME_UNIT = 2 * time.Millisecond
+
 var throw = errors.New("throw error")
 var throw2 = errors.New("throw error (2)")
+
 var tasks = Tasks{
 	{
 		Desc: "SUCCESS launch          ",
@@ -22,7 +25,7 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 0,
-		TimeUnit:    2 * time.Millisecond,
+		TimeUnit:    TIME_UNIT,
 		Expectations: Expectations{
 			{1, 5, 245, Result{1, 4, 9, 16, 25}, nil},
 			{2, 5, 125, Result{1, 4, 9, 16, 25}, nil},
@@ -40,7 +43,7 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 90,
-		TimeUnit:    2 * time.Millisecond,
+		TimeUnit:    TIME_UNIT,
 		Expectations: Expectations{
 			{1, 2, 90, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
 			{2, 4, 90, Result{1, 0, 9, 0, 0}, context.DeadlineExceeded},
@@ -58,7 +61,7 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 0,
-		TimeUnit:    2 * time.Millisecond,
+		TimeUnit:    TIME_UNIT,
 		Expectations: Expectations{
 			{1, 2, 150, Result{1, 0, 0, 0, 0}, throw},
 			{2, 4, 100, Result{1, 0, 9, 0, 0}, throw},
@@ -76,7 +79,7 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 110,
-		TimeUnit:    2 * time.Millisecond,
+		TimeUnit:    TIME_UNIT,
 		Expectations: Expectations{
 			{1, 2, 110, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
 			{2, 4, 100, Result{1, 0, 9, 0, 0}, throw},
@@ -94,11 +97,27 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 0,
-		TimeUnit:    2 * time.Millisecond,
+		TimeUnit:    TIME_UNIT,
 		Expectations: Expectations{
 			{1, 2, 150, Result{1, 0, 0, 0, 0}, throw},
 			{2, 3, 80, Result{1, 0, 0, 0, 0}, throw2},
 			{6, 5, 30, Result{0, 0, 0, 0, 25}, throw2},
+		},
+	},
+	{
+		Desc: "LOOONG launch           ",
+		Args: [5]int{1, 2, 3, 4, 5},
+		ProcessInfo: ProcessInfo{
+			{50, nil},
+			{1000, nil},
+			{30, throw},
+			{40, nil},
+			{25, nil},
+		},
+		CancelAfter: 0,
+		TimeUnit:    TIME_UNIT,
+		Expectations: Expectations{
+			{6, 5, 30, Result{0, 0, 0, 0, 25}, throw},
 		},
 	},
 }
@@ -106,7 +125,7 @@ var tasks = Tasks{
 func TestAsyncSemaphore(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncSemaphore[int, int]}.
-		//Pick(4, 1).
+		//Pick(5, 0).
 		Run()
 }
 
@@ -117,7 +136,9 @@ func TestAsyncWorkers(t *testing.T) {
 
 func TestAsyncPipers(t *testing.T) {
 	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncPipers[int, int]}.Run()
+	Launcher{t, tasks, async.AsyncPipers[int, int]}.
+		//Pick(4, 1).
+		Run()
 	<-time.After(time.Second)
 }
 

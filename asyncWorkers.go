@@ -3,11 +3,12 @@ package async
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 )
 
-// can save the resulting array after canceling/error: YES/YES
-// throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// instant termination on cancelation/error: YES/YES
+// tests: ✅
+// bench: ✅
+
 func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -28,25 +29,25 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	var stop int32
+
 	worker := func(w int) {
 		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
+		for input := range in {
+			if atomic.LoadInt32(&stop) != 0 {
 				return
-			case input, ok := <-in:
-				if !ok {
-					return
-				}
-				printDebug("f(input.Arg) %v", input)
-				value, err := f(input.Index, input.Arg)
-				printDebug("worker %v done, res[%v] = f(%v) = %v, err = %v", w+1, input.Index, input.Arg, value, err)
-				out <- struct {
-					Index int
-					Value V
-					error
-				}{input.Index, value, err}
 			}
+			printDebug("f(input.Arg) %v", input)
+			value, err := f(input.Index, input.Arg)
+			if err != nil {
+				atomic.AddInt32(&stop, 1)
+			}
+			printDebug("worker %v done, res[%v] = f(%v) = %v, err = %v", w+1, input.Index, input.Arg, value, err)
+			out <- struct {
+				Index int
+				Value V
+				error
+			}{input.Index, value, err}
 		}
 	}
 
@@ -72,7 +73,6 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V
 			}{i, arg}:
 			}
 		}
-
 	}()
 
 	go func() {

@@ -5,9 +5,9 @@ import (
 	"sync"
 )
 
-// can save the resulting array after canceling/error: YES/YES
-// throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// instant termination on cancelation/error: YES/YES
+// tests: ✅
+// bench: ✅
+
 func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -57,7 +57,9 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 				}{i, value, err}
 				printDebug(" - wg.Done(%v)", arg)
 				wg.Done()
-				<-traffic
+				if err == nil { //no launch after error
+					<-traffic
+				}
 			}(i, arg)
 			traffic <- struct{}{}
 		}
@@ -86,7 +88,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 					return
 				}
 				res[msg.Index] = msg.Value
-				printDebug("_____%v %v %v %v %v", res, msg.Index, msg.Value, msg.error)
+				printDebug("_____%v %v %v %v", res, msg.Index, msg.Value, msg.error)
 			}
 		}
 	}()

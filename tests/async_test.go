@@ -121,6 +121,10 @@ func TestAsyncPipers(t *testing.T) {
 	<-time.After(time.Second)
 }
 
+func TestAsyncPromiseAtomic(t *testing.T) {
+	Launcher{t, tasks, async.AsyncPromiseAtomic[int, int]}.Run()
+}
+
 func TestAsyncErrgroup(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.Run()
@@ -129,10 +133,6 @@ func TestAsyncErrgroup(t *testing.T) {
 func TestAsyncPromiseCatch(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncPromiseCatch[int, int]}.Run()
-}
-
-func TestAsyncPromiseAtomic(t *testing.T) {
-	Launcher{t, tasks, async.AsyncPromiseAtomic[int, int]}.Run()
 }
 
 func TestAsyncPromiseSync(t *testing.T) {

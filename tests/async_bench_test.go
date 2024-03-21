@@ -66,16 +66,16 @@ func BenchmarkAsyncPipers(b *testing.B) {
 	launcher(b, async.AsyncPipers[int, int])
 }
 
+func BenchmarkAsyncPromiseAtomic(b *testing.B) {
+	launcher(b, async.AsyncPromiseAtomic[int, int])
+}
+
 func BenchmarkAsyncErrgroup(b *testing.B) {
 	launcher(b, async.AsyncErrgroup[int, int])
 }
 
 func BenchmarkAsyncPromiseCatch(b *testing.B) {
 	launcher(b, async.AsyncPromiseCatch[int, int])
-}
-
-func BenchmarkAsyncPromiseAtomic(b *testing.B) {
-	launcher(b, async.AsyncPromiseAtomic[int, int])
 }
 
 func BenchmarkAsyncPromiseSync(b *testing.B) {

@@ -5,31 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kozhurkin/async/pipers"
-	"math/rand"
 	"testing"
 	"time"
 )
 
-func TestPipers(t *testing.T) {
+func TestPipersMain(t *testing.T) {
 	ts := time.Now()
 	pp := pipers.NewPipers(
-		func() (int, error) { <-time.After(10 * time.Millisecond); return 1, nil },
-		func() (int, error) { <-time.After(20 * time.Millisecond); return 2, errors.New("surprise") },
-		func() (int, error) { <-time.After(15 * time.Millisecond); return 3, nil },
-		func() (int, error) { <-time.After(25 * time.Millisecond); return 4, errors.New("surprise 2") },
-		func() (int, error) { <-time.After(30 * time.Millisecond); return 5, nil },
+		func() (int, error) { <-time.After(1000 * time.Millisecond); return 1, nil },
+		func() (int, error) { <-time.After(2000 * time.Millisecond); return 2, nil },
+		func() (int, error) { <-time.After(1500 * time.Millisecond); return 3, nil },
+		func() (int, error) { <-time.After(2500 * time.Millisecond); return 4, errors.New("surprise 2") },
+		func() (int, error) { <-time.After(3000 * time.Millisecond); return 5, nil },
 	)
 
 	ctx := context.Background()
-	timeout := time.Duration(rand.Intn(99)) * time.Millisecond
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	//timeout := time.Duration(rand.Intn(99)) * time.Millisecond
+	//ctx, cancel := context.WithTimeout(ctx, timeout)
+	//defer cancel()
+	//fmt.Println(timeout)
 
-	err, res := pp.Run().FirstErrorContext(ctx), 0 //pp.Results()
+	err, res := pp.RunConcurrency(2).FirstErrorContext(ctx), pp.Results()
 
-	fmt.Println(timeout, res, err, time.Since(ts))
+	fmt.Println(res, err, time.Since(ts))
 
-	<-time.After(time.Second)
+	<-time.After(7 * time.Second)
 
 	return
 }

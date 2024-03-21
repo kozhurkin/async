@@ -66,7 +66,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 	go func() {
 		var err error
 		defer func() {
-			printDebug("-------- END OUTPUT LOOD %v", err)
+			printDebug("-------- END OUTPUT LOOP %v", err)
 			complete <- err
 			close(complete)
 		}()

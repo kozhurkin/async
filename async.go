@@ -31,5 +31,5 @@ func AsyncToMap[A comparable, V any](ctx context.Context, args []A, f func(int, 
 }
 
 func AsyncToArray[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
-	return AsyncSemaphore(ctx, args, f, concurrency)
+	return AsyncWorkers(ctx, args, f, concurrency)
 }

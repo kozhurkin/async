@@ -2,7 +2,7 @@ package async
 
 import (
 	"context"
-	pipers2 "github.com/kozhurkin/async/pipers"
+	"github.com/kozhurkin/async/pipers"
 )
 
 // can save the resulting array after canceling/error: YES/YES
@@ -13,12 +13,12 @@ func AsyncPipers[A any, V any](ctx context.Context, args []A, f func(int, A) (V,
 		concurrency = len(args)
 	}
 	traffic := make(chan struct{}, concurrency)
-	pipers := make(pipers2.Pipers[V], len(args))
+	pp := make(pipers.Pipers[V], len(args))
 	stop := make(chan struct{})
 
 	for i, a := range args {
 		i, a := i, a
-		pipers[i] = pipers2.NewPiper(func() (V, error) {
+		pp[i] = pipers.NewPiper(func() (V, error) {
 			defer func() {
 				printDebug("--- i=%v, a=%v", i, a)
 				<-traffic
@@ -33,7 +33,7 @@ func AsyncPipers[A any, V any](ctx context.Context, args []A, f func(int, A) (V,
 			printDebug("close(traffic)")
 			defer close(traffic)
 		}()
-		for _, pp := range pipers {
+		for _, pp := range pp {
 			select {
 			case <-stop:
 				pp.Close()
@@ -43,9 +43,9 @@ func AsyncPipers[A any, V any](ctx context.Context, args []A, f func(int, A) (V,
 		}
 	}()
 
-	err := pipers.FirstErrorContext(ctx)
+	err := pp.FirstErrorContext(ctx)
 	close(stop)
 	printDebug("close(stop)")
 
-	return pipers.Results(), err
+	return pp.Results(), err
 }

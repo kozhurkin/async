@@ -22,11 +22,11 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 0,
-		TimeUnit:    time.Millisecond,
+		TimeUnit:    2 * time.Millisecond,
 		Expectations: Expectations{
-			{1, 250, Result{1, 4, 9, 16, 25}, nil},
-			{2, 125, Result{1, 4, 9, 16, 25}, nil},
-			{6, 100, Result{1, 4, 9, 16, 25}, nil},
+			{1, 5, 245, Result{1, 4, 9, 16, 25}, nil},
+			{2, 5, 125, Result{1, 4, 9, 16, 25}, nil},
+			{6, 5, 100, Result{1, 4, 9, 16, 25}, nil},
 		},
 	},
 	{
@@ -40,11 +40,11 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 90,
-		TimeUnit:    time.Millisecond,
+		TimeUnit:    2 * time.Millisecond,
 		Expectations: Expectations{
-			{1, 90, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
-			{2, 90, Result{1, 0, 9, 0, 0}, context.DeadlineExceeded},
-			{6, 90, Result{1, 0, 9, 16, 25}, context.DeadlineExceeded},
+			{1, 2, 90, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
+			{2, 4, 90, Result{1, 0, 9, 0, 0}, context.DeadlineExceeded},
+			{6, 5, 90, Result{1, 0, 9, 16, 25}, context.DeadlineExceeded},
 		},
 	},
 	{
@@ -58,11 +58,11 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 0,
-		TimeUnit:    time.Millisecond,
+		TimeUnit:    2 * time.Millisecond,
 		Expectations: Expectations{
-			{1, 150, Result{1, 0, 0, 0, 0}, throw},
-			{2, 100, Result{1, 0, 9, 0, 0}, throw},
-			{6, 100, Result{1, 0, 9, 16, 25}, throw},
+			{1, 2, 150, Result{1, 0, 0, 0, 0}, throw},
+			{2, 4, 100, Result{1, 0, 9, 0, 0}, throw},
+			{6, 5, 100, Result{1, 0, 9, 16, 25}, throw},
 		},
 	},
 	{
@@ -76,11 +76,11 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 110,
-		TimeUnit:    time.Millisecond,
+		TimeUnit:    2 * time.Millisecond,
 		Expectations: Expectations{
-			{1, 110, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
-			{2, 100, Result{1, 0, 9, 0, 0}, throw},
-			{6, 100, Result{1, 0, 9, 16, 25}, throw},
+			{1, 2, 110, Result{1, 0, 0, 0, 0}, context.DeadlineExceeded},
+			{2, 4, 100, Result{1, 0, 9, 0, 0}, throw},
+			{6, 5, 100, Result{1, 0, 9, 16, 25}, throw},
 		},
 	},
 	{
@@ -94,18 +94,20 @@ var tasks = Tasks{
 			{25, nil},
 		},
 		CancelAfter: 0,
-		TimeUnit:    time.Millisecond,
+		TimeUnit:    2 * time.Millisecond,
 		Expectations: Expectations{
-			{1, 150, Result{1, 0, 0, 0, 0}, throw},
-			{2, 80, Result{1, 0, 0, 0, 0}, throw2},
-			{6, 30, Result{0, 0, 0, 0, 25}, throw2},
+			{1, 2, 150, Result{1, 0, 0, 0, 0}, throw},
+			{2, 3, 80, Result{1, 0, 0, 0, 0}, throw2},
+			{6, 5, 30, Result{0, 0, 0, 0, 25}, throw2},
 		},
 	},
 }
 
 func TestAsyncSemaphore(t *testing.T) {
 	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncSemaphore[int, int]}.Run()
+	Launcher{t, tasks, async.AsyncSemaphore[int, int]}.
+		//Pick(4, 1).
+		Run()
 }
 
 func TestAsyncWorkers(t *testing.T) {

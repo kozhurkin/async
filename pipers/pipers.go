@@ -2,9 +2,20 @@ package pipers
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 )
+
+var debug = 0
+
+func printDebug(template string, rest ...interface{}) {
+	if debug == 1 {
+		args := append([]interface{}{time.Now().String()[0:25]}, rest...)
+		fmt.Printf("pipers:  [ %v ]    "+template+"\n", args...)
+	}
+}
 
 type Piper[R any] struct {
 	Out chan R
@@ -13,21 +24,41 @@ type Piper[R any] struct {
 }
 
 func (p Piper[R]) Close() Piper[R] {
-	//fmt.Println("close", p)
+	printDebug(".Close(%v)", p)
 	close(p.Out)
 	close(p.Err)
 	return p
 }
 func (p Piper[R]) Run() Piper[R] {
-	//fmt.Println("run  ", p)
+	p.run()
+	return p
+}
+func (p Piper[R]) run() chan error {
+	printDebug(".run(%v)  ", p)
+	done := make(chan error, 1)
 	go func() {
 		v, e := p.Job()
+		if e != nil {
+			done <- e
+		}
+		close(done)
 		p.Out <- v
 		p.Err <- e
 		p.Close()
 	}()
-	return p
+	return done
 }
+
+func NewPiper[R any](f func() (R, error)) Piper[R] {
+	return Piper[R]{
+		Out: make(chan R, 1),
+		Err: make(chan error, 1),
+		Job: f,
+	}
+}
+
+// Concurrency
+// Context
 
 type Pipers[R any] []Piper[R]
 
@@ -35,6 +66,45 @@ func (pp Pipers[R]) Run() Pipers[R] {
 	for _, p := range pp {
 		p.Run()
 	}
+	return pp
+}
+
+func (pp Pipers[R]) RunConcurrency(n int) Pipers[R] {
+	if n == 0 {
+		return pp.Run()
+	}
+	go func() {
+		traffic := make(chan struct{}, n)
+		catch := make(chan struct{})
+		var once sync.Once
+		defer func() {
+			printDebug("close(traffic)")
+			close(traffic)
+			once.Do(func() {
+				printDebug("close(catch)")
+				close(catch)
+			})
+		}()
+		for i, p := range pp {
+			i, p := i, p
+			select {
+			case <-catch:
+				printDebug("___p.Close(%v)", i)
+				p.Close()
+			case traffic <- struct{}{}:
+				printDebug("___go func(%v)", i)
+				go func() {
+					if err := <-p.run(); err != nil {
+						once.Do(func() {
+							close(catch)
+						})
+					} else {
+						<-traffic
+					}
+				}()
+			}
+		}
+	}()
 	return pp
 }
 
@@ -145,7 +215,7 @@ func (pp Pipers[R]) ErrorsChan() chan error {
 	}
 	go func() {
 		wg.Wait()
-		//fmt.Println("************** close(errchan)")
+		printDebug("************** close(errchan)")
 		close(errchan)
 	}()
 
@@ -162,14 +232,6 @@ func (pp Pipers[R]) ResolveContext(ctx context.Context) ([]R, error) {
 	return pp.Results(), err
 }
 
-func NewPiper[R any](f func() (R, error)) Piper[R] {
-	return Piper[R]{
-		Out: make(chan R, 1),
-		Err: make(chan error, 1),
-		Job: f,
-	}
-}
-
 func NewPipers[R any](funcs ...func() (R, error)) Pipers[R] {
 	res := make(Pipers[R], len(funcs))
 	for i, f := range funcs {
@@ -178,8 +240,15 @@ func NewPipers[R any](funcs ...func() (R, error)) Pipers[R] {
 	return res
 }
 
-func PipersResolve[R any](pipes ...Piper[R]) ([]R, error) {
-	return Pipers[R](pipes).Resolve()
+func NewPipersMap[R any](input []R, f func(int, R) (R, error)) Pipers[R] {
+	res := make(Pipers[R], len(input))
+	for i, v := range input {
+		i, v := i, v
+		res[i] = NewPiper(func() (R, error) {
+			return f(i, v)
+		})
+	}
+	return res
 }
 
 func Ref[I any](p *I, f func() (I, error)) func() (interface{}, error) {

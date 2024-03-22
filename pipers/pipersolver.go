@@ -2,12 +2,14 @@ package pipers
 
 import (
 	"context"
+	"sync"
 )
 
 type PiperSolver[R any] struct {
 	Pipers[R]
 	concurrency int
-	ctx         context.Context
+	context     context.Context
+	once        sync.Once
 }
 
 func (ps *PiperSolver[R]) Add(p Piper[R]) *PiperSolver[R] {
@@ -25,30 +27,48 @@ func (ps *PiperSolver[R]) Concurrency(concurrency int) *PiperSolver[R] {
 	return ps
 }
 
+func (ps *PiperSolver[R]) getContext() context.Context {
+	if ps.context != nil {
+		return ps.context
+	} else {
+		return context.Background()
+	}
+}
+
 func (ps *PiperSolver[R]) Context(ctx context.Context) *PiperSolver[R] {
-	ps.ctx = ctx
+	ps.context = ctx
 	return ps
 }
 
 func (ps *PiperSolver[R]) Run() *PiperSolver[R] {
-	if ps.ctx == nil {
-		ps.Pipers.RunContextConcurrency(context.Background(), ps.concurrency)
-	} else {
-		ps.Pipers.RunContextConcurrency(ps.ctx, ps.concurrency)
-	}
-
+	ps.once.Do(func() {
+		ps.Pipers.RunContextConcurrency(ps.getContext(), ps.concurrency)
+	})
 	return ps
 }
 
 func (ps *PiperSolver[R]) FirstError() error {
-	if ps.ctx == nil {
-		return ps.Pipers.FirstErrorContext(context.Background())
-	} else {
-		return ps.Pipers.FirstErrorContext(ps.ctx)
-	}
+	return ps.Pipers.FirstErrorContext(ps.getContext())
+}
+
+func (ps *PiperSolver[R]) FirstNErrors(n int) []error {
+	return ps.Pipers.FirstNErrorsContext(ps.getContext(), n)
+}
+
+func (ps *PiperSolver[R]) ErrorsAll() []error {
+	return ps.Pipers.ErrorsAllContext(ps.getContext())
+}
+
+func (ps *PiperSolver[R]) Results() Results[R] {
+	return ps.Pipers.Results()
 }
 
 func (ps *PiperSolver[R]) Resolve() ([]R, error) {
+	ps.Run()
 	err := ps.FirstError()
 	return ps.Results(), err
+}
+
+func (ps *PiperSolver[R]) Wait() ([]R, error) {
+	return ps.Resolve()
 }

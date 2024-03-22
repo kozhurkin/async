@@ -31,11 +31,3 @@ func (p Piper[R]) run() chan error {
 	}()
 	return done
 }
-
-func NewPiper[R any](f func() (R, error)) Piper[R] {
-	return Piper[R]{
-		Out: make(chan R, 1),
-		Err: make(chan error, 1),
-		Job: f,
-	}
-}

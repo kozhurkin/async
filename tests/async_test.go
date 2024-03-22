@@ -157,7 +157,6 @@ func TestAsyncPipers(t *testing.T) {
 	Launcher{t, tasks, async.AsyncPipers[int, int]}.
 		//Pick(4, 1).
 		Run()
-	<-time.After(time.Second)
 }
 
 func TestAsyncPromiseAtomic(t *testing.T) {

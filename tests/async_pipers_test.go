@@ -11,7 +11,7 @@ import (
 
 func TestPipersMain(t *testing.T) {
 	ts := time.Now()
-	pp := pipers.NewPipers(
+	ps := pipers.FromFuncs(
 		func() (int, error) { <-time.After(1000 * time.Millisecond); return 1, nil },
 		func() (int, error) { <-time.After(2000 * time.Millisecond); return 2, nil },
 		func() (int, error) { <-time.After(1500 * time.Millisecond); return 3, nil },
@@ -24,10 +24,6 @@ func TestPipersMain(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	fmt.Println(timeout)
-
-	ps := pipers.PiperSolver[int]{
-		Pipers: pp,
-	}
 
 	ps.Concurrency(2).Context(ctx)
 
@@ -69,13 +65,13 @@ func TestPipersReadme(t *testing.T) {
 	var user *User
 	var site *Site
 
-	pp := pipers.NewPipers(
+	ps := pipers.FromFuncs(
 		pipers.Ref(&ads, func() ([]*Ad, error) { return loadAds() }),
 		pipers.Ref(&user, func() (*User, error) { return loadUser(userId) }),
 		pipers.Ref(&site, func() (*Site, error) { return loadSite(siteId) }),
 	)
 
-	results, _ := pp.Run().Resolve()
+	results, _ := ps.Run().Resolve()
 
 	fmt.Printf("results: %T\t%v\n", results, results)
 	fmt.Printf("ads:     %T\t%v\n", ads, ads)

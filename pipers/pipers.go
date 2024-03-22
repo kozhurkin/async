@@ -8,16 +8,16 @@ import (
 
 type Pipers[R any] []Piper[R]
 
-func (pp Pipers[R]) Run() Pipers[R] {
+func (pp Pipers[R]) runAtOnce() Pipers[R] {
 	for _, p := range pp {
 		p.Run()
 	}
 	return pp
 }
 
-func (pp Pipers[R]) RunContextConcurrency(ctx context.Context, n int) Pipers[R] {
+func (pp Pipers[R]) Run(ctx context.Context, n int) Pipers[R] {
 	if n == 0 || n == len(pp) {
-		return pp.Run()
+		return pp.runAtOnce()
 	}
 	go func() {
 		traffic := make(chan struct{}, n)
@@ -61,17 +61,17 @@ func (pp Pipers[R]) Results() Results[R] {
 		select {
 		case res[i] = <-p.Out:
 		default:
-
+			continue
 		}
 	}
 	return res
 }
 
-func (pp Pipers[R]) ErrorsAllContext(ctx context.Context) []error {
-	return pp.FirstNErrorsContext(ctx, 0)
+func (pp Pipers[R]) ErrorsAll(ctx context.Context) []error {
+	return pp.FirstNErrors(ctx, 0)
 }
 
-func (pp Pipers[R]) FirstNErrorsContext(ctx context.Context, n int) []error {
+func (pp Pipers[R]) FirstNErrors(ctx context.Context, n int) []error {
 	errs := make([]error, 0, n)
 	errchan := pp.ErrorsChan()
 	done := make(chan struct{})
@@ -104,11 +104,7 @@ func (pp Pipers[R]) FirstNErrorsContext(ctx context.Context, n int) []error {
 	}
 }
 
-func (pp Pipers[R]) FirstError() error {
-	return <-pp.ErrorsChan()
-}
-
-func (pp Pipers[R]) FirstErrorContext(ctx context.Context) error {
+func (pp Pipers[R]) FirstError(ctx context.Context) error {
 	errchan := pp.ErrorsChan()
 	select {
 	case err, ok := <-errchan:
@@ -144,7 +140,7 @@ func (pp Pipers[R]) ErrorsChan() chan error {
 	return errchan
 }
 
-func (pp Pipers[R]) ResolveContext(ctx context.Context) ([]R, error) {
-	err := pp.FirstErrorContext(ctx)
+func (pp Pipers[R]) Resolve(ctx context.Context) ([]R, error) {
+	err := pp.FirstError(ctx)
 	return pp.Results(), err
 }

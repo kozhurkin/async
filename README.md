@@ -55,7 +55,7 @@ videos := []string{
     "kJQP7kiw5Fk",
     "RgKAFK5djSk",
 }
-ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5 * time.Second))
+ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 defer cancel()
 
 // concurrency = 0 means that all tasks will be executed at the same time
@@ -63,10 +63,10 @@ concurrency := 0
 responses, err := async.AsyncToMap(ctx, videos, func(i int, vid string) (int, error) {
     views, err := youtube.GetViews(vid)
     if err != nil {
-        return nil, err
+        return 0, err
     }
     return views, nil
-}, 0) 
+}, concurrency)
 
 if err != nil {
     log.Fatalln(err)

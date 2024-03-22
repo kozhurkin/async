@@ -42,21 +42,21 @@ func (ps *PiperSolver[R]) Context(ctx context.Context) *PiperSolver[R] {
 
 func (ps *PiperSolver[R]) Run() *PiperSolver[R] {
 	ps.once.Do(func() {
-		ps.Pipers.RunContextConcurrency(ps.getContext(), ps.concurrency)
+		ps.Pipers.Run(ps.getContext(), ps.concurrency)
 	})
 	return ps
 }
 
 func (ps *PiperSolver[R]) FirstError() error {
-	return ps.Pipers.FirstErrorContext(ps.getContext())
+	return ps.Pipers.FirstError(ps.getContext())
 }
 
 func (ps *PiperSolver[R]) FirstNErrors(n int) []error {
-	return ps.Pipers.FirstNErrorsContext(ps.getContext(), n)
+	return ps.Pipers.FirstNErrors(ps.getContext(), n)
 }
 
 func (ps *PiperSolver[R]) ErrorsAll() []error {
-	return ps.Pipers.ErrorsAllContext(ps.getContext())
+	return ps.Pipers.ErrorsAll(ps.getContext())
 }
 
 func (ps *PiperSolver[R]) Results() Results[R] {

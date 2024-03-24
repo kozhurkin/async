@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func TestReadme2(t *testing.T) {
+func TestReadmeSlice(t *testing.T) {
 	tickers := []string{"BTC", "ETH", "BNB", "DOGE"}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -40,7 +40,7 @@ func TestReadme2(t *testing.T) {
 	// [64950 3340.74 556.5 0.17076] <nil>
 }
 
-func TestReadme(t *testing.T) {
+func TestReadmeSliceMapped(t *testing.T) {
 
 	videos := []string{
 		"XqZsoesa55w",
@@ -77,4 +77,45 @@ func TestReadme(t *testing.T) {
 	fmt.Println(err)
 	// map[9bZkp7q19f0:0 JGwWNGJdvx8:0 RgKAFK5djSk:6211818831 ThisIsError:0 XqZsoesa55w:14277740491 kJQP7kiw5Fk:8404577810]
 	// can't parse "ThisIsError" views
+}
+
+func TestReadmeFuncs(t *testing.T) {
+	var binancePrices []struct {
+		Symbol string  `json:"symbol"`
+		Price  float64 `json:"lastPrice,string"`
+		Volume float64 `json:"volume,string"`
+	}
+	var huobiPrices struct {
+		Data []struct {
+			Symbol string  `json:"symbol"`
+			Price  float64 `json:"close"`
+			Volume float64 `json:"vol"`
+		} `json:"data"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// concurrency = 0 means that all tasks will be executed at the same time in parallel
+	concurrency := 0
+	_, err := async.Funcs(ctx, concurrency, func() (interface{}, error) {
+		resp, err := http.Get("https://api.binance.com/api/v3/ticker/24hr")
+		if err == nil {
+			err = json.NewDecoder(resp.Body).Decode(&binancePrices)
+		}
+		return binancePrices, err
+	}, func() (interface{}, error) {
+		resp, err := http.Get("https://api.huobi.pro/market/tickers")
+		if err == nil {
+			err = json.NewDecoder(resp.Body).Decode(&huobiPrices)
+		}
+		return binancePrices, err
+	})
+
+	fmt.Println(binancePrices[0:3])
+	fmt.Println(huobiPrices.Data[0:3])
+	fmt.Println(err)
+	// [{ETHBTC 0.05135 23536.0039} {LTCBTC 0.001364 98422.194} {BNBBTC 0.008554 23751.836}]
+	// [{sylousdt 0.003456 475985.8738069513} {zigusdt 0.09386 57274.5040727801} {walletusdt 0.014629 502630.9344168179}]
+	// <nil>
 }

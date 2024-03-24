@@ -77,8 +77,8 @@ func main() {
             if err != nil {
                 return 0, err
             }
-            if res := regexp.MustCompile(`viewCount":"\d+`).Find(bodyBytes); res != nil {
-                return strconv.Atoi(string(res[12:]))
+            if res := regexp.MustCompile(`viewCount":"(\d+)`).FindSubmatch(bodyBytes); res != nil {
+                return strconv.Atoi(string(res[1]))
             }
         }
         return 0, fmt.Errorf(`can't parse "%v" views`, vid)

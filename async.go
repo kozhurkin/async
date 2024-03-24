@@ -19,6 +19,9 @@ func printDebug(template string, rest ...interface{}) {
 }
 
 func Slice[A any, V any](ctx context.Context, concurrency int, args []A, f func(int, A) (V, error)) ([]V, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return AsyncWorkers(ctx, args, f, concurrency)
 }
 
@@ -32,7 +35,7 @@ func SliceMapped[A comparable, V any](ctx context.Context, concurrency int, args
 }
 
 func Funcs[V any, F func() (V, error)](ctx context.Context, concurrency int, funcs ...F) ([]V, error) {
-	return AsyncWorkers(ctx, funcs, func(i int, f F) (V, error) {
+	return Slice(ctx, concurrency, funcs, func(i int, f F) (V, error) {
 		return f()
-	}, concurrency)
+	})
 }

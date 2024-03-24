@@ -29,7 +29,7 @@ func main() {
     // concurrency = 0 means that all tasks will be executed at the same time in parallel
     concurrency := 0
     results, err := async.Slice(ctx, concurrency, symbols, func(i int, ticker string) (float64, error) {
-        resp, err := http.Get(fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%vUSDT", ticker))
+        resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + ticker + "USDT")
         if err != nil {
             return 0, err
         }

@@ -14,19 +14,15 @@ import (
 )
 
 func TestReadme2(t *testing.T) {
-	tickers := []string{
-		"BTCUSDT",
-		"ETHUSDT",
-		"BNBUSDT",
-		"DOGEUSDT",
-	}
+	tickers := []string{"BTC", "ETH", "BNB", "DOGE"}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// concurrency = 0 means that all tasks will be executed at the same time in parallel
 	concurrency := 0
 	results, err := async.AsyncToArray(ctx, tickers, func(i int, ticker string) (float64, error) {
-		resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + ticker)
+		resp, err := http.Get(fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%vUSDT", ticker))
 		if err != nil {
 			return 0, err
 		}

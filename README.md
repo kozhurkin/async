@@ -6,6 +6,7 @@ helper for asynchronous work in golang powered by generics.
 
 * `AsyncToArray()`
 * `AsyncToMap()`
+* `Funcs()`
 
 Installing
 ----------
@@ -95,7 +96,7 @@ func main() {
 ``` golang
 import github.com/kozhurkin/async
 
-    func main() {
+func main() {
     var binancePrices []struct {
         Symbol string  `json:"symbol"`
         Price  float64 `json:"lastPrice,string"`

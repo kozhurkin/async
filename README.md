@@ -4,8 +4,8 @@ helper for asynchronous work in golang powered by generics.
 
 [![async status](https://github.com/kozhurkin/async/actions/workflows/test.yml/badge.svg)](https://github.com/kozhurkin/async/actions)
 
-* `AsyncToArray()`
-* `AsyncToMap()`
+* `Slice()`
+* `SliceMapped()`
 * `Funcs()`
 
 Installing
@@ -16,7 +16,7 @@ Installing
 Usage
 -----
 
-#### AsyncToArray()
+#### async.Slice()
 ``` golang
 import github.com/kozhurkin/async
 
@@ -28,7 +28,7 @@ func main() {
 
     // concurrency = 0 means that all tasks will be executed at the same time in parallel
     concurrency := 0
-    results, err := async.AsyncToArray(ctx, symbols, func(i int, ticker string) (float64, error) {
+    results, err := async.Slice(ctx, concurrency, symbols, func(i int, ticker string) (float64, error) {
         resp, err := http.Get(fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%vUSDT", ticker))
         if err != nil {
             return 0, err
@@ -38,14 +38,14 @@ func main() {
         }
         err = json.NewDecoder(resp.Body).Decode(&info)
         return info.Price, err
-    }, concurrency)
+    })
 
     fmt.Println(results, err)
     // [64950 3340.74 556.5 0.17076] <nil>
 }
 ```
 
-#### AsyncToMap()
+#### async.SliceMapped()
 ``` golang
 import github.com/kozhurkin/async
 
@@ -64,7 +64,7 @@ func main() {
 
     // concurrency = 0 means that all tasks will be executed at the same time
     concurrency := 2
-    responses, err := async.AsyncToMap(ctx, videos, func(i int, vid string) (int, error) {
+    responses, err := async.SliceMapped(ctx, concurrency, videos, func(i int, vid string) (int, error) {
         resp, err := http.Get("https://www.youtube.com/watch?v=" + vid)
         if err != nil {
             return 0, err
@@ -80,7 +80,7 @@ func main() {
             }
         }
         return 0, fmt.Errorf(`can't parse "%v" views`, vid)
-    }, concurrency)
+    })
 
     fmt.Println(responses)
     fmt.Println(err)
@@ -89,7 +89,7 @@ func main() {
 }
 ```
 
-#### Funcs()
+#### async.Funcs()
 ``` golang
 import github.com/kozhurkin/async
 

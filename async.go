@@ -20,14 +20,11 @@ func printDebug(template string, rest ...interface{}) {
 
 func AsyncToMap[A comparable, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) (map[A]V, error) {
 	arr, err := AsyncToArray(ctx, args, f, concurrency)
-	if err != nil {
-		return nil, err
-	}
 	res := make(map[A]V, len(args))
 	for i, a := range args {
 		res[a] = arr[i]
 	}
-	return res, nil
+	return res, err
 }
 
 func AsyncToArray[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {

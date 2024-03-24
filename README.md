@@ -62,7 +62,7 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    // concurrency = 0 means that all tasks will be executed at the same time
+    // concurrency = 2 means that no more than 2 tasks can be performed at a time
     concurrency := 2
     responses, err := async.SliceMapped(ctx, concurrency, videos, func(i int, vid string) (int, error) {
         resp, err := http.Get("https://www.youtube.com/watch?v=" + vid)
@@ -110,9 +110,7 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    // concurrency = 0 means that all tasks will be executed at the same time in parallel
-    concurrency := 0
-    _, err := async.Funcs(ctx, concurrency, func() (interface{}, error) {
+    _, err := async.Funcs(ctx, 0, func() (interface{}, error) {
         resp, err := http.Get("https://api.binance.com/api/v3/ticker/24hr")
         if err == nil {
             err = json.NewDecoder(resp.Body).Decode(&binancePrices)

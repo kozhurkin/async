@@ -14,26 +14,23 @@ import (
 )
 
 func TestReadmeSlice(t *testing.T) {
-	tickers := []string{"BTC", "ETH", "BNB", "DOGE"}
+	symbols := []string{"BTC", "ETH", "BNB", "DOGE"}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// concurrency = 0 means that all tasks will be executed at the same time in parallel
 	concurrency := 0
-	results, err := async.AsyncToArray(ctx, tickers, func(i int, ticker string) (float64, error) {
+	results, err := async.AsyncToArray(ctx, symbols, func(i int, ticker string) (float64, error) {
 		resp, err := http.Get(fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%vUSDT", ticker))
 		if err != nil {
 			return 0, err
 		}
 		var info struct {
-			Symbol string  `json:"symbol"`
-			Price  float64 `json:"price,string"`
+			Price float64 `json:"price,string"`
 		}
-		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-			return 0, err
-		}
-		return info.Price, nil
+		err = json.NewDecoder(resp.Body).Decode(&info)
+		return info.Price, err
 	}, concurrency)
 
 	fmt.Println(results, err)

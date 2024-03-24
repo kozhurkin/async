@@ -2,7 +2,7 @@ package async
 
 import (
 	"context"
-	"github.com/kozhurkin/async/pipers"
+	"github.com/kozhurkin/pipers"
 )
 
 // tests: ✅

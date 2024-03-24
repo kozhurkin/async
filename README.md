@@ -1,13 +1,9 @@
 # async
 
-Helper for asynchronous work in golang powered by generics
+helper for asynchronous work in golang powered by generics.
 
 * `AsyncToArray()`
 * `AsyncToMap()`
-* `NewPipers()`
-* `NewPip()`
-
-
 
 Installing
 ----------
@@ -74,73 +70,4 @@ if err != nil {
 
 fmt.Println(responses)
 // map[XqZsoesa55w:11e9 kJQP7kiw5Fk:8e9 RgKAFK5djSk:5.7e9]
-```
-#### NewPipers()
-``` golang
-import github.com/kozhurkin/async/pipers
-
-func main() {
-
-    pp := pipers.NewPipers(
-        func() (interface{}, error) { return loadAds() },
-        func() (interface{}, error) { return loadUser(userId) },
-        func() (interface{}, error) { return loadSite(siteId) },
-    )
-
-    err := pp.Run().FirstError()
-
-    if err != nil {
-        panic(err)
-    }
-
-    res := pp.Results()
-
-    ads := res[1].([]Ad)
-    user := res[2].(User)
-    site := res[3].(Site)
-}
-```
-
-``` golang
-import github.com/kozhurkin/async/pipers
-
-// usage of helper .Ref() and method .Resolve()
-func main() {
-
-    var ads []*Ad
-    var user *User
-    var site *Site
-
-    pp := pipers.NewPipers(
-        pipers.Ref(&ads, func() ([]*Ad, error) { return loadAds() }),
-        pipers.Ref(&user, func() (*User, error) { return loadUser(userId) }),
-        pipers.Ref(&site, func() (*Site, error) { return loadSite(siteId) }),
-    )
-
-    results, _ := pp.Run().Resolve()
-
-    fmt.Printf("results: %T\t%v\n", results, results)   // results: []interface {} [[0xc000224010] 0xc0002a00f0 0xc000224020]
-    fmt.Printf("ads:     %T\t%v\n", ads, ads)           // ads:     []*tests.Ad    [0xc000224010]
-    fmt.Printf("user:    %T\t%v\n", user, user)         // user:    *tests.User    &{Dima}
-    fmt.Printf("site:    %T\t%v\n", site, site)         // site:    *tests.Site    &{site.com}
-}
-```
-
-#### NewPip()
-``` golang
-import github.com/kozhurkin/async/pip
-
-func main() {
-    ts := time.Now()
-    pa := pip.NewPip(func() int {
-        <-time.After(2 * time.Second) // working 2 seconds
-        return 2024
-    })
-    pb := pip.NewPip(func() string {
-        <-time.After(3 * time.Second) // working 3 seconds
-        return "Happy New Year!"
-    })
-    a, b := <-pa, <-pb // parallel execution
-    fmt.Println(time.Now().Sub(ts)) // execution time 3 seconds (not 5)
-}
 ```

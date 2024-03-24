@@ -1,2 +1,4 @@
+github.com/kozhurkin/pipers v1.0.0 h1:rRecu6NQksT/v+q30YHABjr+h/rDW8owA6d+5MmfqSM=
+github.com/kozhurkin/pipers v1.0.0/go.mod h1:SurcY7M16jUsyW4d/0xlm2Mip0XunKQBcHHYJ/jDwPQ=
 golang.org/x/sync v0.6.0 h1:5BMeUDZ7vkXGfEr1x9B4bRcTH4lpkTkpdh0T/J+qjbQ=
 golang.org/x/sync v0.6.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=

@@ -3,7 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/kozhurkin/async/pipers"
+	"github.com/kozhurkin/pipers"
 	"math/rand"
 	"testing"
 	"time"
@@ -27,7 +27,7 @@ func TestPipersMain(t *testing.T) {
 
 	ps.Concurrency(2).Context(ctx)
 
-	err, res := ps.Run().FirstError(), ps.Results()
+	err, res := ps.FirstError(), ps.Results()
 
 	fmt.Println(res, err, time.Since(ts))
 
@@ -71,7 +71,7 @@ func TestPipersReadme(t *testing.T) {
 		pipers.Ref(&site, func() (*Site, error) { return loadSite(siteId) }),
 	)
 
-	results, _ := ps.Run().Resolve()
+	results, _ := ps.Resolve()
 
 	fmt.Printf("results: %T\t%v\n", results, results)
 	fmt.Printf("ads:     %T\t%v\n", ads, ads)

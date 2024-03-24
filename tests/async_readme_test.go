@@ -90,7 +90,8 @@ func TestReadmeFuncs(t *testing.T) {
 		} `json:"data"`
 	}
 
-	_, err := async.Funcs(nil, 0, func() (interface{}, error) {
+	concurrency := 0
+	_, err := async.Funcs(context.Background(), concurrency, func() (interface{}, error) {
 		resp, err := http.Get("https://api.binance.com/api/v3/ticker/24hr")
 		if err == nil {
 			err = json.NewDecoder(resp.Body).Decode(&binancePrices)

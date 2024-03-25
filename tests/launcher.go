@@ -52,7 +52,7 @@ type Tasks []*struct {
 type Launcher struct {
 	T *testing.T
 	Tasks
-	Handler func(context.Context, []int, func(int, int) (int, error), int) ([]int, error)
+	Handler func(context.Context, []int, func(context.Context, int, int) (int, error), int) ([]int, error)
 }
 
 const DURATION_FAILT = 5
@@ -83,7 +83,7 @@ func (l Launcher) Run() *Launcher {
 			wait := time.After(time.Duration(task.ProcessInfo.Duration(expect.Concurrency)) * task.TimeUnit)
 			var cnt int32
 			ts := time.Now()
-			result, err := l.Handler(ctx, task.Args[:5], func(i int, arg int) (int, error) {
+			result, err := l.Handler(ctx, task.Args[:5], func(ctx context.Context, i int, arg int) (int, error) {
 				defer func() {
 					atomic.AddInt32(&cnt, 1)
 				}()

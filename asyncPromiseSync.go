@@ -8,7 +8,7 @@ import (
 // throws "context canceled" if an error occurs before/after cancellation: NO/YES
 // instant cancellation (does not wait for parallel jobs when an error occurs or canceled): NO
 
-func AsyncPromiseSync[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromiseSync[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -35,7 +35,7 @@ LOOP:
 		ch := make(chan V, 1)
 		wg.Go(func() error {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
-			value, err := f(i, arg)
+			value, err := f(ctx, i, arg)
 			printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
 			<-traffic
 			ch <- value

@@ -5,7 +5,7 @@ import (
 	"github.com/kozhurkin/async/pip"
 )
 
-func AsyncPromisePipes[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromisePipes[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -31,7 +31,7 @@ LOOP:
 		}
 		promises[i] = pip.NewPip(func() V {
 			printDebug("JOB START: i=%v arg=%v", i, arg)
-			value, err := f(i, arg)
+			value, err := f(ctx, i, arg)
 			if err != nil {
 				catch <- err
 				cancel()

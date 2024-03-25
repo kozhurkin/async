@@ -9,7 +9,7 @@ import (
 // tests: ✅
 // bench: ✅
 
-func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -38,7 +38,7 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(int, A) (V
 				return
 			}
 			printDebug("f(input.Arg) %v", input)
-			value, err := f(input.Index, input.Arg)
+			value, err := f(ctx, input.Index, input.Arg)
 			if err != nil {
 				atomic.AddInt32(&stop, 1)
 			}

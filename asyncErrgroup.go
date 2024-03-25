@@ -8,7 +8,7 @@ import (
 // can save the resulting array after canceling/error: YES/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
 // instant termination on cancelation/error: YES/YES
-func AsyncErrgroup[A any, V any](c context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncErrgroup[A any, V any](c context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -41,7 +41,7 @@ func AsyncErrgroup[A any, V any](c context.Context, args []A, f func(int, A) (V,
 			arg := arg
 			wg.Go(func() error {
 				printDebug("wg.Go %v", arg)
-				value, err := f(index, arg)
+				value, err := f(ctx, index, arg)
 				printDebug("done: %v %v %v", arg, value, err)
 				if err != nil {
 					cancel()

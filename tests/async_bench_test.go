@@ -29,7 +29,7 @@ var datas = func() [][]int {
 
 var seed = time.Now().UnixNano()
 
-func launcher(b *testing.B, asyncFunc func(context.Context, []int, func(int, int) (int, error), int) ([]int, error)) {
+func launcher(b *testing.B, asyncFunc func(context.Context, []int, func(context.Context, int, int) (int, error), int) ([]int, error)) {
 	ctx := context.Background()
 	rand.Seed(seed)
 	var errs, iters int32
@@ -37,7 +37,7 @@ func launcher(b *testing.B, asyncFunc func(context.Context, []int, func(int, int
 		length := len(data)
 		for c := 0; c <= 10; c++ {
 			for i := 1; i <= b.N; i++ {
-				asyncFunc(ctx, data, func(i int, k int) (int, error) {
+				asyncFunc(ctx, data, func(ctx context.Context, i int, k int) (int, error) {
 					rnd := rand.Intn(1000)
 					runtime.Gosched()
 					//<-time.After(time.Duration(rnd) * time.Nanosecond)

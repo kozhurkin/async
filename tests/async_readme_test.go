@@ -21,7 +21,7 @@ func TestReadmeSlice(t *testing.T) {
 
 	// concurrency = 0 means that all tasks will be executed at the same time in parallel
 	concurrency := 0
-	results, err := async.Slice(ctx, concurrency, symbols, func(i int, ticker string) (float64, error) {
+	results, err := async.AsyncToArray(ctx, concurrency, symbols, func(ctx context.Context, i int, ticker string) (float64, error) {
 		resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + ticker + "USDT")
 		if err != nil {
 			return 0, err
@@ -52,7 +52,7 @@ func TestReadmeSliceMapped(t *testing.T) {
 
 	// concurrency = 2 means that no more than 2 tasks can be performed at a time
 	concurrency := 2
-	responses, err := async.SliceMapped(ctx, concurrency, videos, func(i int, vid string) (int, error) {
+	responses, err := async.AsyncToMap(ctx, concurrency, videos, func(ctx context.Context, i int, vid string) (int, error) {
 		resp, err := http.Get("https://www.youtube.com/watch?v=" + vid)
 		if err != nil {
 			return 0, err
@@ -91,13 +91,13 @@ func TestReadmeFuncs(t *testing.T) {
 	}
 
 	concurrency := 0
-	_, err := async.Funcs(context.Background(), concurrency, func() (interface{}, error) {
+	_, err := async.AsyncFuncs(context.Background(), concurrency, func(ctx context.Context) (interface{}, error) {
 		resp, err := http.Get("https://api.binance.com/api/v3/ticker/24hr")
 		if err == nil {
 			err = json.NewDecoder(resp.Body).Decode(&binancePrices)
 		}
 		return binancePrices, err
-	}, func() (interface{}, error) {
+	}, func(ctx context.Context) (interface{}, error) {
 		resp, err := http.Get("https://api.huobi.pro/market/tickers")
 		if err == nil {
 			err = json.NewDecoder(resp.Body).Decode(&huobiPrices)

@@ -8,7 +8,7 @@ import (
 // tests: ✅
 // bench: ✅
 
-func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -48,7 +48,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(int, A) 
 			printDebug(" + wg.Add(%v)", arg)
 			go func(i int, arg A) {
 				printDebug("go func(%v)", arg)
-				value, err := f(i, arg)
+				value, err := f(ctx, i, arg)
 				printDebug("CHAN <- struct {%v, %v, %v}", i, value, err)
 				output <- struct {
 					Index int

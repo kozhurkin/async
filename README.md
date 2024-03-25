@@ -107,20 +107,24 @@ func main() {
         } `json:"data"`
     }
 
-    concurrency := 0
-    _, err := async.AsyncFuncs(context.Background(), concurrency, func() (interface{}, error) {
-        resp, err := http.Get("https://api.binance.com/api/v3/ticker/24hr")
-        if err == nil {
-            err = json.NewDecoder(resp.Body).Decode(&binancePrices)
-        }
-        return binancePrices, err
-    }, func() (interface{}, error) {
-        resp, err := http.Get("https://api.huobi.pro/market/tickers")
-        if err == nil {
-            err = json.NewDecoder(resp.Body).Decode(&huobiPrices)
-        }
-        return binancePrices, err
-    })
+    _, err := async.AsyncFuncs(
+        context.Background(),
+        concurrency,
+        func(ctx context.Context) (interface{}, error) {
+            resp, err := http.Get("https://api.binance.com/api/v3/ticker/24hr")
+            if err == nil {
+                err = json.NewDecoder(resp.Body).Decode(&binancePrices)
+            }
+            return binancePrices, err
+        },
+        func(ctx context.Context) (interface{}, error) {
+            resp, err := http.Get("https://api.huobi.pro/market/tickers")
+            if err == nil {
+                err = json.NewDecoder(resp.Body).Decode(&huobiPrices)
+            }
+            return binancePrices, err
+        },
+    )
 
     fmt.Println(binancePrices[0:3])
     fmt.Println(huobiPrices.Data[0:3])

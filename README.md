@@ -2,7 +2,7 @@
 
 helper for asynchronous work in golang powered by generics.
 
-[![async status](https://github.com/kozhurkin/async/actions/workflows/test.yml/badge.svg)](https://github.com/kozhurkin/async/actions)
+[![async status](https://github.com/kozhurkin/async/actions/workflows/tests.yml/badge.svg)](https://github.com/kozhurkin/async/actions)
 
 * `AsyncToArray()`
 * `AsyncToMap()`

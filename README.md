@@ -1,6 +1,6 @@
 # async
 
-helper for asynchronous work in golang powered by generics.
+A helper library for asynchronous tasks in Go, powered by generics.
 
 [![async status](https://github.com/kozhurkin/async/actions/workflows/tests.yml/badge.svg)](https://github.com/kozhurkin/async/actions)
 

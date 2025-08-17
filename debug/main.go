@@ -32,9 +32,9 @@ func main() {
 	concurrency := 3
 	data := []int{1, 2, 3, 4, 5, 6} //, 7, 8, 9}
 OUT:
-	for i := 1; i <= 1; i++ {
-		res, err := async.AsyncPipers(ctx, data, func(i int, k int) (int, error) {
-			rnd := rand.Intn(100)
+	for i := 1; i <= 1000; i++ {
+		res, err := async.AsyncErrgroupSimple(ctx, data, func(ctx context.Context, i int, k int) (int, error) {
+			rnd := rand.Intn(10)
 			<-time.After(time.Duration(rnd) * time.Millisecond)
 			if rand.Intn(len(data)) == 0 {
 				return k, fmt.Errorf("unknown error (%v)", k)

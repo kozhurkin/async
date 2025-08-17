@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 var datas = func() [][]int {
@@ -27,11 +26,8 @@ var datas = func() [][]int {
 	return res
 }()
 
-var seed = time.Now().UnixNano()
-
 func launcher(b *testing.B, asyncFunc func(context.Context, []int, func(context.Context, int, int) (int, error), int) ([]int, error)) {
 	ctx := context.Background()
-	rand.Seed(seed)
 	var errs, iters int32
 	for _, data := range datas {
 		length := len(data)

@@ -154,7 +154,9 @@ func TestAsyncWorkers(t *testing.T) {
 
 func TestAsyncErrgroupSimple(t *testing.T) {
 	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncErrgroupSimple[int, int]}.Run()
+	Launcher{t, tasks, async.AsyncErrgroupSimple[int, int]}.
+		//Pick(5, 0).
+		Run()
 }
 
 func TestAsyncPipers(t *testing.T) {

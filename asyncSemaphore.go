@@ -14,7 +14,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 	}
 	printDebug("CONCURRENCY: %v", concurrency)
 
-	traffic := make(chan struct{}, concurrency-1)
+	traffic := make(chan struct{}, concurrency)
 	output := make(chan struct {
 		Index int
 		Value V
@@ -38,6 +38,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 			close(output)
 		}()
 		for i, arg := range args {
+			traffic <- struct{}{}
 			if ctx.Err() != nil {
 				printDebug("SKIP INPUT %v", arg)
 				return
@@ -45,6 +46,8 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 			wg.Add(1)
 			printDebug(" + wg.Add(%v)", arg)
 			go func(i int, arg A) {
+				defer wg.Done()
+				defer func() { <-traffic }()
 				printDebug("go func(%v)", arg)
 				value, err := f(ctx, i, arg)
 				printDebug("CHAN <- struct {%v, %v, %v}", i, value, err)
@@ -54,12 +57,10 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 					error
 				}{i, value, err}
 				printDebug(" - wg.Done(%v)", arg)
-				wg.Done()
-				if err == nil { //no launch after error
-					<-traffic
+				if err != nil {
+					cancel()
 				}
 			}(i, arg)
-			traffic <- struct{}{}
 		}
 	}()
 

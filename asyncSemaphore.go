@@ -19,7 +19,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 		Index int
 		Value V
 		error
-	}, concurrency) // size=concurrency to prevent blocking of the input channel
+	})
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

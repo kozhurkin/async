@@ -25,15 +25,16 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Co
 
 	wg := sync.WaitGroup{}
 
+	workCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	worker := func(w int) {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
 		defer wg.Done()
 		for input := range in {
-			if ctx.Err() != nil {
+			if workCtx.Err() != nil {
 				return
 			}
-			value, err := f(ctx, input.Index, input.Arg)
+			value, err := f(workCtx, input.Index, input.Arg)
 			out <- struct {
 				Index int
 				Value V
@@ -54,7 +55,7 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Co
 		defer close(in)
 		for i, arg := range args {
 			select {
-			case <-ctx.Done():
+			case <-workCtx.Done():
 				return
 			case in <- struct {
 				Index int

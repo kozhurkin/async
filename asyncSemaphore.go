@@ -7,7 +7,6 @@ import (
 
 // tests: ✅
 // bench: ✅
-
 func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
@@ -40,11 +39,13 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 		for i, arg := range args {
 			i, arg := i, arg
 
-			traffic <- struct{}{}
-			if ctx.Err() != nil {
+			select {
+			case traffic <- struct{}{}:
+			case <-ctx.Done():
 				printDebug("SKIP INPUT %v", arg)
 				return
 			}
+
 			wg.Add(1)
 			printDebug(" + wg.Add(%v)", arg)
 			go func() {

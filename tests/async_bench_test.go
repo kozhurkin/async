@@ -62,6 +62,10 @@ func BenchmarkAsyncWorkers(b *testing.B) {
 	launcher(b, async.AsyncWorkers[int, int])
 }
 
+func BenchmarkAsyncErrgroupSimple(b *testing.B) {
+	launcher(b, async.AsyncErrgroupSimple[int, int])
+}
+
 func BenchmarkAsyncPipers(b *testing.B) {
 	launcher(b, async.AsyncPipers[int, int])
 }
@@ -72,10 +76,6 @@ func BenchmarkAsyncPromiseAtomic(b *testing.B) {
 
 func BenchmarkAsyncErrgroup(b *testing.B) {
 	launcher(b, async.AsyncErrgroup[int, int])
-}
-
-func BenchmarkAsyncErrgroupSimple(b *testing.B) {
-	launcher(b, async.AsyncErrgroupSimple[int, int])
 }
 
 func BenchmarkAsyncPromiseCatch(b *testing.B) {

@@ -152,6 +152,11 @@ func TestAsyncWorkers(t *testing.T) {
 	Launcher{t, tasks, async.AsyncWorkers[int, int]}.Run()
 }
 
+func TestAsyncErrgroupSimple(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncErrgroupSimple[int, int]}.Run()
+}
+
 func TestAsyncPipers(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncPipers[int, int]}.
@@ -169,11 +174,6 @@ func TestAsyncPromiseAtomic(t *testing.T) {
 func TestAsyncErrgroup(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.Run()
-}
-
-func TestAsyncErrgroupSimple(t *testing.T) {
-	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncErrgroupSimple[int, int]}.Run()
 }
 
 func TestAsyncPromiseCatch(t *testing.T) {

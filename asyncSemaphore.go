@@ -13,7 +13,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 		concurrency = len(args)
 	}
 	printDebug("CONCURRENCY: %v", concurrency)
-	complete := make(chan error)
+
 	traffic := make(chan struct{}, concurrency-1)
 	output := make(chan struct {
 		Index int
@@ -38,11 +38,9 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 			close(output)
 		}()
 		for i, arg := range args {
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil {
 				printDebug("SKIP INPUT %v", arg)
 				return
-			default:
 			}
 			wg.Add(1)
 			printDebug(" + wg.Add(%v)", arg)
@@ -65,40 +63,21 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 		}
 	}()
 
-	go func() {
-		var err error
-		defer func() {
-			printDebug("-------- END OUTPUT LOOP %v", err)
-			complete <- err
-			close(complete)
-		}()
-		for {
-			select {
-			case <-ctx.Done():
-				printDebug("SKIP OUTPUT %v")
-				err = ctx.Err()
-				return
-			case msg, ok := <-output:
-				printDebug("CHAN msg := struct {%v, %v, %v, %v}", msg.Index, msg.Value, msg.error, ok)
-				if !ok {
-					return
-				}
-				if msg.error != nil {
-					err = msg.error
-					return
-				}
-				res[msg.Index] = msg.Value
-				printDebug("_____%v %v %v %v", res, msg.Index, msg.Value, msg.error)
+	for {
+		select {
+		case <-ctx.Done():
+			printDebug("SKIP OUTPUT %v")
+			return res, ctx.Err()
+		case msg, ok := <-output:
+			printDebug("CHAN msg := struct {%v, %v, %v, %v}", msg.Index, msg.Value, msg.error, ok)
+			if !ok {
+				return res, nil
 			}
+			if msg.error != nil {
+				return res, msg.error
+			}
+			res[msg.Index] = msg.Value
+			printDebug("_____%v %v %v %v", res, msg.Index, msg.Value, msg.error)
 		}
-	}()
-
-	select {
-	case err, ok := <-complete:
-		printDebug("err, ok := %v, %v", err, ok)
-		if err != nil {
-			return res, err
-		}
-		return res, nil
 	}
 }

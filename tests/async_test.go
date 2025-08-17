@@ -171,6 +171,11 @@ func TestAsyncErrgroup(t *testing.T) {
 	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.Run()
 }
 
+func TestAsyncErrgroupSimple(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncErrgroupSimple[int, int]}.Run()
+}
+
 func TestAsyncPromiseCatch(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncPromiseCatch[int, int]}.Run()

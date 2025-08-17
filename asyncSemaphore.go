@@ -38,6 +38,8 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 			close(output)
 		}()
 		for i, arg := range args {
+			i, arg := i, arg
+
 			traffic <- struct{}{}
 			if ctx.Err() != nil {
 				printDebug("SKIP INPUT %v", arg)
@@ -45,7 +47,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 			}
 			wg.Add(1)
 			printDebug(" + wg.Add(%v)", arg)
-			go func(i int, arg A) {
+			go func() {
 				defer wg.Done()
 				defer func() { <-traffic }()
 				printDebug("go func(%v)", arg)
@@ -60,7 +62,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 				if err != nil {
 					cancel()
 				}
-			}(i, arg)
+			}()
 		}
 	}()
 

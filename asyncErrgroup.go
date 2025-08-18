@@ -5,75 +5,56 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// can save the resulting array after canceling/error: YES/YES
-// throws "context canceled" if an error occurs before/after cancellation: YES/YES
-// instant termination on cancelation/error: YES/YES
-func AsyncErrgroup[A any, V any](c context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
 
-	printDebug("%v %v", args, concurrency)
-	out := make(chan struct {
-		Index int
-		Value V
-	}, concurrency)
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(concurrency)
 
-	ctx, cancel := context.WithCancel(c)
-	defer cancel()
+	res := make([]V, len(args))
 
-	wg := new(errgroup.Group)
-	traffic := make(chan struct{}, concurrency-1)
+	for i, arg := range args {
+		i, arg := i, arg // захват переменных
+		eg.Go(func() error {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
+			printDebug("Task %v started", i)
 
-	var err error
-	result := make([]V, len(args))
+			resultCh := make(chan struct {
+				value V
+				err   error
+			}, 1)
 
-	go func() {
-		defer func() {
-			printDebug("close(traffic)")
-			close(traffic)
-			err = wg.Wait()
-			printDebug("ERRR %v", err)
-			close(out)
-		}()
-		for index, arg := range args {
-			index := index
-			arg := arg
-			wg.Go(func() error {
-				printDebug("wg.Go %v", arg)
-				value, err := f(ctx, index, arg)
-				printDebug("done: %v %v %v", arg, value, err)
-				if err != nil {
-					cancel()
-					return err
-				}
-				<-traffic
-				out <- struct {
-					Index int
-					Value V
-				}{index, value}
-				printDebug("return %v", arg)
-				return nil
-			})
+			// Запускаем f в отдельной горутине
+			go func() {
+				v, err := f(ctx, i, arg)
+				resultCh <- struct {
+					value V
+					err   error
+				}{v, err}
+			}()
+
 			select {
 			case <-ctx.Done():
-				printDebug("skipping input %v %v", index, arg)
-				return
-			case traffic <- struct{}{}:
+				printDebug("Task %v canceled due to context: %v", i, ctx.Err())
+				return ctx.Err()
+			case r := <-resultCh:
+				if r.err != nil {
+					printDebug("Task %v finished with error: %v", i, r.err)
+					return r.err
+				}
+				res[i] = r.value
+				printDebug("Task %v finished successfully", i)
+				return nil
 			}
-		}
-	}()
-
-	for {
-		select {
-		case msg, ok := <-out:
-			if !ok {
-				return result, err
-			}
-			printDebug("msg %v", msg)
-			result[msg.Index] = msg.Value
-		case <-c.Done():
-			return result, ctx.Err()
-		}
+		})
 	}
+
+	if err := eg.Wait(); err != nil {
+		return res, err
+	}
+	return res, nil
 }

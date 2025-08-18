@@ -152,9 +152,9 @@ func TestAsyncWorkers(t *testing.T) {
 	Launcher{t, tasks, async.AsyncWorkers[int, int]}.Run()
 }
 
-func TestAsyncErrgroupSimple(t *testing.T) {
+func TestAsyncErrgroup(t *testing.T) {
 	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncErrgroupSimple[int, int]}.
+	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.
 		//Pick(5, 0).
 		Run()
 }
@@ -166,16 +166,18 @@ func TestAsyncPipers(t *testing.T) {
 		Run()
 }
 
+func TestAsyncPromisePipes(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncPromisePipes[int, int]}.
+		//Pick(1, 2).
+		Run()
+}
+
 func TestAsyncPromiseAtomic(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncPromiseAtomic[int, int]}.
 		//Pick(1, 1).
 		Run()
-}
-
-func TestAsyncErrgroup(t *testing.T) {
-	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.Run()
 }
 
 func TestAsyncPromiseCatch(t *testing.T) {
@@ -185,8 +187,4 @@ func TestAsyncPromiseCatch(t *testing.T) {
 
 func TestAsyncPromiseSync(t *testing.T) {
 	Launcher{t, tasks, async.AsyncPromiseSync[int, int]}.Run()
-}
-
-func TestAsyncPromisePipes(t *testing.T) {
-	Launcher{t, tasks, async.AsyncPromisePipes[int, int]}.Run()
 }

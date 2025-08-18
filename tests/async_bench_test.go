@@ -50,16 +50,20 @@ func launcher(b *testing.B, asyncFunc func(context.Context, []int, func(context.
 	//fmt.Println("throw", b.N, atomic.LoadInt32(&iters), atomic.LoadInt32(&errs))
 }
 
-func BenchmarkAsyncSemaphore(b *testing.B) {
-	launcher(b, async.AsyncSemaphore[int, int])
-}
-
 func BenchmarkAsyncWorkers(b *testing.B) {
 	launcher(b, async.AsyncWorkers[int, int])
 }
 
-func BenchmarkAsyncErrgroupSimple(b *testing.B) {
-	launcher(b, async.AsyncErrgroupSimple[int, int])
+func BenchmarkAsyncSemaphore(b *testing.B) {
+	launcher(b, async.AsyncSemaphore[int, int])
+}
+
+func BenchmarkAsyncPromisePipes(b *testing.B) {
+	launcher(b, async.AsyncPromisePipes[int, int])
+}
+
+func BenchmarkAsyncErrgroup(b *testing.B) {
+	launcher(b, async.AsyncErrgroup[int, int])
 }
 
 func BenchmarkAsyncPipers(b *testing.B) {
@@ -70,18 +74,10 @@ func BenchmarkAsyncPromiseAtomic(b *testing.B) {
 	launcher(b, async.AsyncPromiseAtomic[int, int])
 }
 
-func BenchmarkAsyncErrgroup(b *testing.B) {
-	launcher(b, async.AsyncErrgroup[int, int])
-}
-
 func BenchmarkAsyncPromiseCatch(b *testing.B) {
 	launcher(b, async.AsyncPromiseCatch[int, int])
 }
 
 func BenchmarkAsyncPromiseSync(b *testing.B) {
 	launcher(b, async.AsyncPromiseSync[int, int])
-}
-
-func BenchmarkAsyncPromisePipes(b *testing.B) {
-	launcher(b, async.AsyncPromisePipes[int, int])
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/kozhurkin/async/pip"
 )
 
-func AsyncPromisePipes[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromisePips[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}

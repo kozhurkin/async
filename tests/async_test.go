@@ -166,9 +166,9 @@ func TestAsyncPipers(t *testing.T) {
 		Run()
 }
 
-func TestAsyncPromisePipes(t *testing.T) {
+func TestAsyncPromisePips(t *testing.T) {
 	//async.SetDebug(1)
-	Launcher{t, tasks, async.AsyncPromisePipes[int, int]}.
+	Launcher{t, tasks, async.AsyncPromisePips[int, int]}.
 		//Pick(1, 2).
 		Run()
 }

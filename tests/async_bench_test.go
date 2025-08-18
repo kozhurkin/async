@@ -58,8 +58,8 @@ func BenchmarkAsyncSemaphore(b *testing.B) {
 	launcher(b, async.AsyncSemaphore[int, int])
 }
 
-func BenchmarkAsyncPromisePipes(b *testing.B) {
-	launcher(b, async.AsyncPromisePipes[int, int])
+func BenchmarkAsyncPromisePips(b *testing.B) {
+	launcher(b, async.AsyncPromisePips[int, int])
 }
 
 func BenchmarkAsyncErrgroup(b *testing.B) {

@@ -7,7 +7,6 @@ import (
 
 // tests: ✅
 // bench: ✅
-
 func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)

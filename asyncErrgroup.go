@@ -48,6 +48,9 @@ func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(context.C
 				return nil
 			}
 		})
+		if ctx.Err() != nil {
+			break
+		}
 	}
 
 	if err := eg.Wait(); err != nil {

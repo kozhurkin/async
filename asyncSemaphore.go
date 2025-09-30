@@ -27,7 +27,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 		defer cancel()
 
 		defer func() {
-			close(traffic)
+			//close(traffic) // not needed
 			wg.Wait()
 			close(output)
 		}()
@@ -43,8 +43,10 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 
 			wg.Add(1)
 			go func() {
-				defer wg.Done()
-				defer func() { <-traffic }()
+				defer func() {
+					<-traffic // освободить слот
+					wg.Done() // затем отметить завершение
+				}()
 				value, err := f(ctx, i, arg)
 				output <- struct {
 					Index int

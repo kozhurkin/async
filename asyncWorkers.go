@@ -34,22 +34,28 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Co
 				return
 			}
 			value, err := f(workCtx, input.Index, input.Arg)
-			out <- struct {
+			msg := struct {
 				Index int
 				Value V
 				error
 			}{input.Index, value, err}
+			select {
+			case out <- msg:
+			case <-workCtx.Done():
+			}
 			if err != nil {
 				cancel()
 			}
 		}
 	}
 
+	// start workers
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go worker(i)
 	}
 
+	// send jobs
 	go func() {
 		defer close(in)
 		for i, arg := range args {

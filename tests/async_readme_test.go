@@ -4,25 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kozhurkin/async"
 	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/kozhurkin/async"
 )
 
 func TestReadmeSlice(t *testing.T) {
-	symbols := []string{"BTC", "ETH", "BNB", "DOGE"}
+	coins := []string{"BTC", "ETH", "BNB", "DOGE"}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// concurrency = 0 means that all tasks will be executed at the same time in parallel
 	concurrency := 0
-	results, err := async.AsyncToArray(ctx, concurrency, symbols, func(ctx context.Context, i int, ticker string) (float64, error) {
-		resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + ticker + "USDT")
+	results, err := async.AsyncToArray(ctx, concurrency, coins, func(ctx context.Context, i int, coin string) (float64, error) {
+		resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + coin + "USDT")
 		if err != nil {
 			return 0, err
 		}

@@ -43,7 +43,7 @@ import (
 )
 
 func main() {
-    symbols := []string{"BTC", "ETH", "BNB", "DOGE"}
+    coins := []string{"BTC", "ETH", "BNB", "DOGE"}
 
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
@@ -51,8 +51,8 @@ func main() {
     // concurrency = 0 means unlimited parallelism
     concurrency := 0
 
-    results, err := async.AsyncToArray(ctx, concurrency, symbols, func(i int, ticker string) (float64, error) {
-        resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + ticker + "USDT")
+    results, err := async.AsyncToArray(ctx, concurrency, coins, func(ctx context.Context, i int, coin string) (float64, error) {
+        resp, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=" + coin + "USDT")
         if err != nil {
             return 0, err
         }
@@ -99,7 +99,7 @@ func main() {
 
     concurrency := 2
 
-    responses, err := async.AsyncToMap(ctx, concurrency, videos, func(i int, vid string) (int, error) {
+    responses, err := async.AsyncToMap(ctx, concurrency, videos, func(ctx context.Context, i int, vid string) (int, error) {
         resp, err := http.Get("https://www.youtube.com/watch?v=" + vid)
         if err != nil {
             return 0, err

@@ -10,7 +10,7 @@ import (
 // save the resulting array after canceling/error: SOSO/YES
 // throws "context canceled" if an error occurs before/after cancellation: YES/YES
 // instant termination on cancelation/error: YES/YES
-func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, fn func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -50,7 +50,7 @@ func AsyncPromiseAtomic[A any, V any](ctx context.Context, args []A, f func(cont
 				error
 			} {
 				printDebug("JOB START: i=%v arg=%v", i, arg)
-				value, err := f(ctx, i, arg)
+				value, err := fn(ctx, i, arg)
 				printDebug("JOB DONE: i=%v arg=%v value=%v err=%v", i, arg, value, err)
 				if err != nil {
 					atomic.AddInt32(&stop, 1)

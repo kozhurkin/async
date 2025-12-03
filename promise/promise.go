@@ -79,21 +79,21 @@ func (p *Promise[R]) Return() (R, error) {
 	return p.Value(), err
 }
 
-func (p *Promise[R]) Then(f func(R) (R, error)) *Promise[R] {
+func (p *Promise[R]) Then(fn func(R) (R, error)) *Promise[R] {
 	return NewPromise(func() (R, error) {
 		err := p.Error()
 		value := p.Value()
 		if err != nil {
 			return value, err
 		}
-		return f(value)
+		return fn(value)
 	})
 }
 
-func (p *Promise[R]) Catch(f func(error) (R, error)) *Promise[R] {
+func (p *Promise[R]) Catch(fn func(error) (R, error)) *Promise[R] {
 	return NewPromise(func() (R, error) {
 		if err := p.Error(); err != nil {
-			return f(err)
+			return fn(err)
 		}
 		return p.Value(), nil
 	})

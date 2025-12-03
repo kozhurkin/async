@@ -7,7 +7,7 @@ import (
 
 // tests: ✅
 // bench: ✅
-func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncSemaphore[A any, V any](ctx context.Context, args []A, fn func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -47,7 +47,7 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, f func(context.
 					<-traffic // освободить слот
 					wg.Done() // затем отметить завершение
 				}()
-				value, err := f(ctx, i, arg)
+				value, err := fn(ctx, i, arg)
 				output <- struct {
 					Index int
 					Value V

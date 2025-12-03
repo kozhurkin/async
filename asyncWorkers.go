@@ -7,7 +7,7 @@ import (
 
 // tests: ✅
 // bench: ✅
-func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncWorkers[A any, V any](ctx context.Context, args []A, fn func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -33,7 +33,7 @@ func AsyncWorkers[A any, V any](ctx context.Context, args []A, f func(context.Co
 			if workCtx.Err() != nil {
 				return
 			}
-			value, err := f(workCtx, input.Index, input.Arg)
+			value, err := fn(workCtx, input.Index, input.Arg)
 			msg := struct {
 				Index int
 				Value V

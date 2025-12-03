@@ -2,12 +2,13 @@ package async
 
 import (
 	"context"
+
 	"golang.org/x/sync/errgroup"
 )
 
 // tests: ✅
 // bench: ✅
-func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncErrgroup[A any, V any](ctx context.Context, args []A, fn func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -30,7 +31,7 @@ func AsyncErrgroup[A any, V any](ctx context.Context, args []A, f func(context.C
 			}, 1)
 
 			go func() {
-				v, err := f(ctx, i, arg)
+				v, err := fn(ctx, i, arg)
 				resultCh <- struct {
 					value V
 					err   error

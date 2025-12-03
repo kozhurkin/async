@@ -5,7 +5,7 @@ import (
 	"github.com/kozhurkin/async/pip"
 )
 
-func AsyncPromisePips[A any, V any](ctx context.Context, args []A, f func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
+func AsyncPromisePips[A any, V any](ctx context.Context, args []A, fn func(context.Context, int, A) (V, error), concurrency int) ([]V, error) {
 	if concurrency == 0 {
 		concurrency = len(args)
 	}
@@ -31,7 +31,7 @@ LOOP:
 
 		promises[i] = pip.NewPip(func() V {
 			defer func() { <-traffic }()
-			value, err := f(ctx, i, arg)
+			value, err := fn(ctx, i, arg)
 			if err != nil {
 				select {
 				case catch <- err:

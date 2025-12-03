@@ -1,9 +1,9 @@
 package pip
 
-func NewPip[V any, C chan V](f func() V) C {
+func NewPip[V any, C chan V](fn func() V) C {
 	out := make(C, 1)
 	go func() {
-		out <- f()
+		out <- fn()
 		close(out)
 	}()
 	return out

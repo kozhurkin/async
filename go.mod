@@ -1,6 +1,6 @@
 module github.com/kozhurkin/async
 
-go 1.19
+go 1.20
 
 require (
 	github.com/kozhurkin/pipers v1.2.1

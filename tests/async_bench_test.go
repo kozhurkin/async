@@ -54,6 +54,10 @@ func BenchmarkAsyncWorkers(b *testing.B) {
 	launcher(b, async.AsyncWorkers[int, int])
 }
 
+func BenchmarkAsyncWorkerPool(b *testing.B) {
+	launcher(b, async.AsyncWorkerPool[int, int])
+}
+
 func BenchmarkAsyncSemaphore(b *testing.B) {
 	launcher(b, async.AsyncSemaphore[int, int])
 }

@@ -152,6 +152,11 @@ func TestAsyncWorkers(t *testing.T) {
 	Launcher{t, tasks, async.AsyncWorkers[int, int]}.Run()
 }
 
+func TestAsyncWorkerPool(t *testing.T) {
+	//async.SetDebug(1)
+	Launcher{t, tasks, async.AsyncWorkerPool[int, int]}.Run()
+}
+
 func TestAsyncErrgroup(t *testing.T) {
 	//async.SetDebug(1)
 	Launcher{t, tasks, async.AsyncErrgroup[int, int]}.

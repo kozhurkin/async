@@ -2,7 +2,6 @@ package async
 
 import (
 	"context"
-	"sync"
 )
 
 // tests: ✅
@@ -19,7 +18,6 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, fn func(context
 		error
 	}, concurrency) // size=concurrency to prevent blocking of the input channel
 
-	wg := sync.WaitGroup{}
 	res := make([]V, len(args))
 
 	go func() {
@@ -28,7 +26,9 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, fn func(context
 
 		defer func() {
 			//close(traffic) // not needed
-			wg.Wait()
+			for i := 0; i < concurrency; i++ {
+				traffic <- struct{}{}
+			}
 			close(output)
 		}()
 
@@ -36,16 +36,14 @@ func AsyncSemaphore[A any, V any](ctx context.Context, args []A, fn func(context
 			i, arg := i, arg
 
 			select {
-			case traffic <- struct{}{}:
+			case traffic <- struct{}{}: // занять слот
 			case <-ctx.Done():
 				return
 			}
 
-			wg.Add(1)
 			go func() {
 				defer func() {
 					<-traffic // освободить слот
-					wg.Done() // затем отметить завершение
 				}()
 				value, err := fn(ctx, i, arg)
 				output <- struct {
